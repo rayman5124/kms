@@ -1,0 +1,157 @@
+definitions:
+  dto.ImportAccountDTO:
+    properties:
+      pk:
+        example: 637081577126ff5c2d327f992bd66548e00262578fd558d7fe272ef21b8bf825
+        type: string
+    required:
+    - pk
+    type: object
+  dto.TxnDTO:
+    properties:
+      keyID:
+        example: f50a9229-e7c7-45ba-b06c-8036b894424e
+        type: string
+      serializedTxn:
+        example: 0xea5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d018086059407ad8e8b8080
+        type: string
+    required:
+    - keyID
+    - serializedTxn
+    type: object
+  res.AccountListRes:
+    properties:
+      accounts:
+        items:
+          $ref: '#/definitions/res.AccountRes'
+        type: array
+      marker:
+        type: string
+    type: object
+  res.AccountRes:
+    properties:
+      address:
+        example: 0x216690cD286d8a9c8D39d9714263bB6AB97046F3
+        type: string
+      keyID:
+        example: f50a9229-e7c7-45ba-b06c-8036b894424e
+        type: string
+    type: object
+  res.TxnRes:
+    properties:
+      transaction hash:
+        example: 0x661e2747abdb7c11197f6c7d9a89d4b543248bb7dd7f08a27cacb2f2f7474c0f
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/account:
+    post:
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/res.AccountRes'
+      summary: Create new account
+  /api/account/keyID/{keyID}:
+    get:
+      parameters:
+      - description: kms key-id
+        in: path
+        name: keyID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.AccountRes'
+      summary: Get account of target key id
+  /api/account/list:
+    get:
+      parameters:
+      - example: 100
+        in: query
+        name: limit
+        type: integer
+      - in: query
+        name: marker
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.AccountListRes'
+      summary: Get accounst list
+  /api/import/account:
+    post:
+      parameters:
+      - description: subject
+        in: body
+        name: subject
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ImportAccountDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/res.AccountRes'
+      summary: Import account to kms
+  /api/txn:
+    get:
+      parameters:
+      - in: query
+        name: data
+        type: string
+      - in: query
+        name: from
+        required: true
+        type: string
+      - in: query
+        name: gas
+        type: integer
+      - in: query
+        name: gasPrice
+        type: string
+      - in: query
+        name: nonce
+        type: integer
+      - in: query
+        name: to
+        type: string
+      - in: query
+        name: value
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Get Serialized Txn
+    post:
+      parameters:
+      - description: subject
+        in: body
+        name: subject
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TxnDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/res.TxnRes'
+      summary: Send serialized transaction.
+swagger: "2.0"
