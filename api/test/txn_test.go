@@ -207,7 +207,7 @@ func (t *TxnTestSuite) Test_AceesListTxn() {
 	})
 	t.NoError(err)
 
-	serializedTxn, _ := types.NewTx(&types.AccessListTx{
+	serializedTxn, err := types.NewTx(&types.AccessListTx{
 		To:         &t.erc20.CA,
 		Nonce:      pnonce,
 		Gas:        gas,
@@ -215,6 +215,7 @@ func (t *TxnTestSuite) Test_AceesListTxn() {
 		AccessList: accessList,
 		GasPrice:   t.testNet.ChainInfo.GasPrice,
 	}).MarshalBinary()
+	t.NoError(err)
 
 	beforeBal, err := t.erc20.BalanceOf(toAccount.Address, nil)
 	t.NoError(err)
