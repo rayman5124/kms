@@ -2,7 +2,6 @@ package dto
 
 import (
 	"math/big"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -27,7 +26,6 @@ func (r *RawTxDTO) ToLegacyTx() *types.LegacyTx {
 	gasPrice, _ := new(big.Int).SetString(r.GasPrice, 10)
 	value, _ := new(big.Int).SetString(r.Value, 10)
 	to := common.HexToAddress(r.To)
-	noPrefixData, _ := strings.CutPrefix(r.Data, "0x")
 
 	return &types.LegacyTx{
 		GasPrice: gasPrice,
@@ -35,6 +33,6 @@ func (r *RawTxDTO) ToLegacyTx() *types.LegacyTx {
 		Gas:      r.Gas,
 		To:       &to,
 		Value:    value,
-		Data:     common.Hex2Bytes(noPrefixData),
+		Data:     common.FromHex(r.Data),
 	}
 }

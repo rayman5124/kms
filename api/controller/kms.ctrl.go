@@ -15,31 +15,31 @@ type kmsCtrl struct {
 func NewKmsCtrl(kmsSrv *srv.KmsSrv, router fiber.Router) *kmsCtrl {
 	ctrl := &kmsCtrl{kmsSrv}
 
-	router.Post("/account", ctrl.CreateAccount)
+	router.Post("/create/account", ctrl.CreateAccount)
 	router.Post("/import/account", ctrl.ImportAccount)
-	router.Get("/account/keyID/:keyID", ctrl.GetAccount)
+	router.Get("/address/keyID/:keyID", ctrl.GetAddress)
 	router.Get("/account/list", ctrl.GetAccountList)
 
 	return ctrl
 }
 
-// @summary Get account of target key id
+// @summary Get address of target key id
 // @produce json
-// @success 200 {object} res.AccountRes
-// @router  /api/account/keyID/{keyID} [get]
+// @success 200 {object} res.AddressRes
+// @router  /api/address/keyID/{keyID} [get]
 // @param   keyID path string true "kms key-id"
-func (c *kmsCtrl) GetAccount(ctx *fiber.Ctx) error {
-	accountDTO, errWrap := dto.ShouldBind[dto.AccountDTO](ctx.ParamsParser)
+func (c *kmsCtrl) GetAddress(ctx *fiber.Ctx) error {
+	AddressDTO, errWrap := dto.ShouldBind[dto.AddressDTO](ctx.ParamsParser)
 	if errWrap != nil {
 		return res.ProcessErrRes(errWrap, ctx)
 	}
 
-	accountRes, errWrap := c.kmsSrv.GetAccount(accountDTO)
+	addressRes, errWrap := c.kmsSrv.GetAddress(AddressDTO)
 	if errWrap != nil {
 		return res.ProcessErrRes(errWrap, ctx)
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(accountRes)
+	return ctx.Status(fiber.StatusOK).JSON(addressRes)
 }
 
 // @summary Get accounst list
@@ -64,7 +64,7 @@ func (c *kmsCtrl) GetAccountList(ctx *fiber.Ctx) error {
 // @summary Create new account
 // @produce json
 // @success 201 {object} res.AccountRes
-// @router  /api/account [post]
+// @router  /api/create/account [post]
 func (c *kmsCtrl) CreateAccount(ctx *fiber.Ctx) error {
 	accountRes, errWrap := c.kmsSrv.CreateAccount()
 	if errWrap != nil {
@@ -78,13 +78,13 @@ func (c *kmsCtrl) CreateAccount(ctx *fiber.Ctx) error {
 // @produce json
 // @success 201 {object} res.AccountRes
 // @router  /api/import/account [post]
-// @param   subject body dto.ImportAccountDTO true "subject"
+// @param   subject body dto.ImportAddressDTO true "subject"
 func (c *kmsCtrl) ImportAccount(ctx *fiber.Ctx) error {
-	importAccountDTO, errWrap := dto.ShouldBind[dto.ImportAccountDTO](ctx.BodyParser)
+	importAddressDTO, errWrap := dto.ShouldBind[dto.ImportAddressDTO](ctx.BodyParser)
 	if errWrap != nil {
 		return res.ProcessErrRes(errWrap, ctx)
 	}
-	accountRes, errWrap := c.kmsSrv.ImportAccount(importAccountDTO.PK)
+	accountRes, errWrap := c.kmsSrv.ImportAccount(importAddressDTO.PK)
 	if errWrap != nil {
 		return res.ProcessErrRes(errWrap, ctx)
 	}

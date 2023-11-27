@@ -11,8 +11,6 @@ import (
 	"encoding/asn1"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -57,16 +55,7 @@ type KmsSrv struct {
 	pubKeyCache *cache.PubKeyCache
 }
 
-func NewKmsSrv(accessKey, secreteKey, region string) *KmsSrv {
-	creds := credentials.NewStaticCredentialsProvider(accessKey, secreteKey, "")
-	cfg := errutil.HandleFatal(
-		config.LoadDefaultConfig(
-			context.Background(),
-			config.WithCredentialsProvider(creds),
-			config.WithRegion(region),
-		),
-	)
-
+func NewKmsSrv(cfg aws.Config) *KmsSrv {
 	return &KmsSrv{
 		client:      kms.NewFromConfig(cfg),
 		pubKeyCache: cache.NewPubKeyCache(),
@@ -85,21 +74,32 @@ func (s *KmsSrv) CreateAccount() (*res.AccountRes, *errutil.ErrWrap) {
 	}
 	keyID := *key.KeyMetadata.KeyId
 
-	accountRes, errWrap := s.GetAccount(&dto.AccountDTO{KeyID: keyID})
+	accountRes, errWrap := s.GetAddress(&dto.AddressDTO{KeyID: keyID})
 	if errWrap != nil {
 		errWrap.Code = 500
 		return nil, errWrap
 	}
 
-	return accountRes, nil
+	return &res.AccountRes{KeyID: keyID, Address: accountRes.Address}, nil
+}
+
+// keyID와 매칭되는 address 리턴
+func (s *KmsSrv) GetAddress(AddressDTO *dto.AddressDTO) (*res.AddressRes, *errutil.ErrWrap) {
+	pubkey, errWrap := s.getPubKey(AddressDTO.KeyID)
+	if errWrap != nil {
+		return nil, errWrap
+	}
+
+	addr := crypto.PubkeyToAddress(*pubkey)
+	return &res.AddressRes{Address: addr.String()}, nil
 }
 
 // aws kms에 저장된 키들의 ID 리스트를 리턴
 func (s *KmsSrv) GetAccountList(limit *int32, marker *string) (*res.AccountListRes, *errutil.ErrWrap) {
 	keyList, err := s.client.ListKeys(context.TODO(), &kms.ListKeysInput{Limit: limit, Marker: marker})
 	if err != nil {
-		code, filteredErr := errutil.FilterAwsErr(err)
-		return nil, errutil.NewErrWrap(code, "GetKeyIdList_kms_listekeys", filteredErr)
+		_, filteredErr := errutil.FilterAwsErr(err)
+		return nil, errutil.NewErrWrap(500, "GetKeyIdList_kms_listekeys", filteredErr)
 	}
 
 	accountsList := make([]res.AccountRes, len(keyList.Keys))
@@ -113,12 +113,12 @@ func (s *KmsSrv) GetAccountList(limit *int32, marker *string) (*res.AccountListR
 			}
 
 			if keyInfo.KeyMetadata.Enabled {
-				accountRes, errWrap := s.GetAccount(&dto.AccountDTO{KeyID: *key.KeyId})
+				addressRes, errWrap := s.GetAddress(&dto.AddressDTO{KeyID: *key.KeyId})
 				if errWrap != nil {
 					errWrap.Code = 500
 					return nil, errWrap
 				}
-				accountsList[i] = *accountRes
+				accountsList[i] = res.AccountRes{KeyID: *key.KeyId, Address: addressRes.Address}
 			} else {
 				// 삭제중인 키는 address가 빈값
 				accountsList[i] = res.AccountRes{KeyID: *key.KeyId}
@@ -134,23 +134,12 @@ func (s *KmsSrv) GetAccountList(limit *int32, marker *string) (*res.AccountListR
 }
 
 // keyID와 매칭되는 public key(버퍼)를 리턴
-func (s *KmsSrv) GetPubkey(accountDTO *dto.AccountDTO) ([]byte, *errutil.ErrWrap) {
-	pubkey, errRes := s.getPubKey(accountDTO.KeyID)
+func (s *KmsSrv) GetPubkey(AddressDTO *dto.AddressDTO) ([]byte, *errutil.ErrWrap) {
+	pubkey, errRes := s.getPubKey(AddressDTO.KeyID)
 	if errRes != nil {
 		return nil, errRes
 	}
 	return secp256k1.S256().Marshal(pubkey.X, pubkey.Y), nil
-}
-
-// keyID와 매칭되는 account를 리턴
-func (s *KmsSrv) GetAccount(accountDTO *dto.AccountDTO) (*res.AccountRes, *errutil.ErrWrap) {
-	pubkey, errWrap := s.getPubKey(accountDTO.KeyID)
-	if errWrap != nil {
-		return nil, errWrap
-	}
-
-	addr := crypto.PubkeyToAddress(*pubkey)
-	return &res.AccountRes{KeyID: accountDTO.KeyID, Address: addr.String()}, nil
 }
 
 // 메세지에 서명 이후 R, S 값을 리턴
@@ -174,35 +163,6 @@ func (s *KmsSrv) Sign(keyID string, msg []byte) ([]byte, []byte, *errutil.ErrWra
 
 	return sigAsn1.R.Bytes, sigAsn1.S.Bytes, nil
 
-}
-
-func (s *KmsSrv) getPubKey(keyID string) (*ecdsa.PublicKey, *errutil.ErrWrap) {
-	cached := s.pubKeyCache.Get(keyID)
-	if cached != nil {
-		return cached, nil
-
-	} else {
-		pubKeyOut, err := s.client.GetPublicKey(context.TODO(), &kms.GetPublicKeyInput{
-			KeyId: aws.String(keyID),
-		})
-		if err != nil {
-			code, filteredErr := errutil.FilterAwsErr(err)
-			return nil, errutil.NewErrWrap(code, "getPubKey_kms_getPublicKey", filteredErr)
-		}
-
-		var asn1PubKey asn1PubKeyFormat
-		_, err = asn1.Unmarshal(pubKeyOut.PublicKey, &asn1PubKey)
-		if err != nil {
-			return nil, errutil.NewErrWrap(500, "getPubKey_asn1_unmarsahl", err)
-		}
-
-		pubKey, err := crypto.UnmarshalPubkey(asn1PubKey.PublicKey.Bytes)
-		if err != nil {
-			return nil, errutil.NewErrWrap(500, "getPubKey_crypto_unmarshalPubkey", err)
-		}
-		s.pubKeyCache.Add(keyID, pubKey)
-		return pubKey, nil
-	}
 }
 
 // 외부 private key를 주입
@@ -234,15 +194,15 @@ func (s *KmsSrv) ImportAccount(pk string) (*res.AccountRes, *errutil.ErrWrap) {
 	}
 
 	// ==== private key ASN.1 데이터 형식으로 DER 인코딩 ====
-	parsedPK, err := crypto.HexToECDSA(pk)
+	ecdsaPK, err := crypto.HexToECDSA(pk)
 	if err != nil {
 		return nil, errutil.NewErrWrap(500, "ImportAccount_crypto_hexToECDSA", err)
 	}
 
 	asn1EcPK, err := asn1.Marshal(asn1PKFormat{
 		Version:       1,
-		PrivateKey:    crypto.FromECDSA(parsedPK),
-		PublicKey:     asn1.BitString{Bytes: crypto.FromECDSAPub(&parsedPK.PublicKey)},
+		PrivateKey:    crypto.FromECDSA(ecdsaPK),
+		PublicKey:     asn1.BitString{Bytes: crypto.FromECDSAPub(&ecdsaPK.PublicKey)},
 		NamedCurveOID: asn1.ObjectIdentifier{1, 2, 840, 10045, 2, 1},
 	})
 	if err != nil {
@@ -262,12 +222,12 @@ func (s *KmsSrv) ImportAccount(pk string) (*res.AccountRes, *errutil.ErrWrap) {
 	}
 	// ================================================
 
-	parsedPubKey, err := x509.ParsePKIXPublicKey(importParameter.PublicKey)
+	rsaPubKey, err := x509.ParsePKIXPublicKey(importParameter.PublicKey)
 	if err != nil {
 		return nil, errutil.NewErrWrap(500, "ImportAccount_x509_parsePKIXPublicKey", err)
 	}
 
-	encryptedMaterial, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, parsedPubKey.(*rsa.PublicKey), pkcs8Asn1EcPK, nil)
+	encryptedMaterial, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, rsaPubKey.(*rsa.PublicKey), pkcs8Asn1EcPK, nil)
 	if err != nil {
 		return nil, errutil.NewErrWrap(500, "ImportAccount_rsa_encryptOAEP", err)
 	}
@@ -283,10 +243,39 @@ func (s *KmsSrv) ImportAccount(pk string) (*res.AccountRes, *errutil.ErrWrap) {
 		return nil, errutil.NewErrWrap(500, "ImportAccount_kms_importKeyMaterial", filteredErr)
 	}
 
-	accountRes, errWrap := s.GetAccount(&dto.AccountDTO{KeyID: keyID})
+	addressRes, errWrap := s.GetAddress(&dto.AddressDTO{KeyID: keyID})
 	if errWrap != nil {
 		errWrap.Code = 500
 		return nil, errWrap
 	}
-	return accountRes, nil
+	return &res.AccountRes{KeyID: keyID, Address: addressRes.Address}, nil
+}
+
+func (s *KmsSrv) getPubKey(keyID string) (*ecdsa.PublicKey, *errutil.ErrWrap) {
+	cached := s.pubKeyCache.Get(keyID)
+	if cached != nil {
+		return cached, nil
+
+	} else {
+		pubKeyOut, err := s.client.GetPublicKey(context.TODO(), &kms.GetPublicKeyInput{
+			KeyId: aws.String(keyID),
+		})
+		if err != nil {
+			code, filteredErr := errutil.FilterAwsErr(err)
+			return nil, errutil.NewErrWrap(code, "getPubKey_kms_getPublicKey", filteredErr)
+		}
+
+		var asn1PubKey asn1PubKeyFormat
+		_, err = asn1.Unmarshal(pubKeyOut.PublicKey, &asn1PubKey)
+		if err != nil {
+			return nil, errutil.NewErrWrap(500, "getPubKey_asn1_unmarsahl", err)
+		}
+
+		pubKey, err := crypto.UnmarshalPubkey(asn1PubKey.PublicKey.Bytes)
+		if err != nil {
+			return nil, errutil.NewErrWrap(500, "getPubKey_crypto_unmarshalPubkey", err)
+		}
+		s.pubKeyCache.Add(keyID, pubKey)
+		return pubKey, nil
+	}
 }

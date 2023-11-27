@@ -16,47 +16,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/account": {
-            "post": {
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Create new account",
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/res.AccountRes"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/account/keyID/{keyID}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Get account of target key id",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "kms key-id",
-                        "name": "keyID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/res.AccountRes"
-                        }
-                    }
-                }
-            }
-        },
         "/api/account/list": {
             "get": {
                 "produces": [
@@ -86,6 +45,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/address/keyID/{keyID}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get address of target key id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "kms key-id",
+                        "name": "keyID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.AddressRes"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/create/account": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Create new account",
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/res.AccountRes"
+                        }
+                    }
+                }
+            }
+        },
         "/api/import/account": {
             "post": {
                 "produces": [
@@ -99,7 +99,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ImportAccountDTO"
+                            "$ref": "#/definitions/dto.ImportAddressDTO"
                         }
                     }
                 ],
@@ -113,61 +113,12 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/txn": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Get Serialized Txn",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "name": "data",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "name": "from",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "name": "gas",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "name": "gasPrice",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "name": "nonce",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "name": "to",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "name": "value",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                }
-            },
+        "/api/sign/txn": {
             "post": {
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Send serialized transaction.",
+                "summary": "Sign serialized transaction.",
                 "parameters": [
                     {
                         "description": "subject",
@@ -183,7 +134,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/res.TxnRes"
+                            "$ref": "#/definitions/res.SingedTxnRes"
                         }
                     }
                 }
@@ -191,7 +142,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.ImportAccountDTO": {
+        "dto.ImportAddressDTO": {
             "type": "object",
             "required": [
                 "pk"
@@ -230,7 +181,8 @@ const docTemplate = `{
                     }
                 },
                 "marker": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "AE0AAAACAHMAAAAJYWNjb3VudElkAHMAAAAMOTg1MDk2Mzk3ODIxAHMAAAAEdGtJZABzAAAAJDQ0YTAzNWU2LTY1OTEtNDgwMC04YjcwLWM3MzNiNTI2MzljMw"
                 }
             }
         },
@@ -247,12 +199,21 @@ const docTemplate = `{
                 }
             }
         },
-        "res.TxnRes": {
+        "res.AddressRes": {
             "type": "object",
             "properties": {
-                "transaction hash": {
+                "address": {
                     "type": "string",
-                    "example": "0x661e2747abdb7c11197f6c7d9a89d4b543248bb7dd7f08a27cacb2f2f7474c0f"
+                    "example": "0x216690cD286d8a9c8D39d9714263bB6AB97046F3"
+                }
+            }
+        },
+        "res.SingedTxnRes": {
+            "type": "object",
+            "properties": {
+                "signedTxn": {
+                    "type": "string",
+                    "example": "0xf86a5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d0180860b280f5b1d3aa00d2ea43cfd9b91151348d037a5a80293f543e1700a7019853f28063f6442c826a052a29797169740b1bc48962e197299061c8aa3314951a9c71418d19036604645"
                 }
             }
         }

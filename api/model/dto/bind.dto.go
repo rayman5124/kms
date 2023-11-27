@@ -1,7 +1,6 @@
 package dto
 
 import (
-	"errors"
 	"kms/tutorial/common/utils/errutil"
 
 	"github.com/go-playground/locales/en"
@@ -27,7 +26,7 @@ func ShouldBind[T any](parser func(any) error) (*T, *errutil.ErrWrap) {
 		// for _, e := range errs {
 		// 	fmt.Printf("err: %+#v", e)
 		// }
-		return nil, errutil.NewErrWrap(400, "", errors.New(err.Error()))
+		return nil, errutil.NewErrWrap(400, "", err)
 	}
 
 	return &data, nil

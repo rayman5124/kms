@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,27 +9,28 @@ import (
 )
 
 type EnvStruct struct {
-	RPC_END_POINT  string
 	AWS_ACCESS_KEY string
 	AWS_SECRET_KEY string
 	AWS_REGION     string
+	CHAIN_ID       string
 }
 
 var Env *EnvStruct
 
-func Init(curEnv string) {
+func Init(envPath string) {
 	if Env == nil {
 		Env = new(EnvStruct)
 	}
 
-	if err := godotenv.Load("./env/.env." + curEnv); err != nil {
-		log.Fatalf("Failed to load %s env file\n", curEnv)
+	if err := godotenv.Load(envPath); err != nil {
+		fmt.Println(err)
+		log.Fatalf("Failed to load %s env file\n", envPath)
 	}
 
-	Env.RPC_END_POINT = getEnv("RPC_END_POINT", true)
 	Env.AWS_ACCESS_KEY = getEnv("AWS_ACCESS_KEY", true)
 	Env.AWS_SECRET_KEY = getEnv("AWS_SECRET_KEY", true)
 	Env.AWS_REGION = getEnv("AWS_REGION", true)
+	Env.CHAIN_ID = getEnv("CHAIN_ID", true)
 }
 
 func getEnv(key string, required bool) string {

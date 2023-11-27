@@ -7,10 +7,9 @@ type AccountRes struct {
 
 type AccountListRes struct {
 	Accounts []AccountRes `json:"accounts"`
-	Marker   string       `json:"marker"`
+	Marker   string       `json:"marker" example:"AE0AAAACAHMAAAAJYWNjb3VudElkAHMAAAAMOTg1MDk2Mzk3ODIxAHMAAAAEdGtJZABzAAAAJDQ0YTAzNWU2LTY1OTEtNDgwMC04YjcwLWM3MzNiNTI2MzljMw"`
 }
 
-// ec6f85ba43b74000825208945f90d10443b03f46a6c3513fe62f60733e7bcea7880de0b6b3a764000080808080
-// e96f85ba43b74000825208945f90d10443b03f46a6c3513fe62f60733e7bcea7880de0b6b3a764000080
-// 0xf27085ba43b74000825208945f90d10443b03f46a6c3513fe62f60733e7bcea7880de0b6b3a76400008086059407ad8e8b8080
-// 0xe97085ba43b74000825208945f90d10443b03f46a6c3513fe62f60733e7bcea7880de0b6b3a764000080
+type AddressRes struct {
+	Address string `json:"address" example:"0x216690cD286d8a9c8D39d9714263bB6AB97046F3"`
+}
