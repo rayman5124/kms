@@ -2,8 +2,8 @@ package res
 
 import (
 	"fmt"
-	"kms/tutorial/common/utils/errutil"
-	"kms/tutorial/common/utils/timeutil"
+	"kms/wallet/common/utils/errutil"
+	"kms/wallet/common/utils/timeutil"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"

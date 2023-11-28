@@ -1,21 +1,31 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"kms/tutorial/api/server"
+	"kms/wallet/app/server"
+	"kms/wallet/common/config"
+	"kms/wallet/common/utils/errutil"
+	"log"
+	"os"
+
+	"golang.org/x/exp/slices"
 )
 
-type AwsInfo struct {
-	Accesskey string
-	Secretkey string
-}
-
-var keyid string = "f50a9229-e7c7-45ba-b06c-8036b894424e"
-
 func main() {
-	if err := <-server.Run(":7777"); err != nil {
+	var (
+		curEnv = flag.String("env", "dev", "environment")
+	)
+
+	flag.Parse()
+	if envs := []string{"local", "dev", "stg", "prd"}; !slices.Contains(envs, *curEnv) {
+		log.Fatalf("env must be one of %v (env=%v)", envs, *curEnv)
+	}
+	rootPath := errutil.HandleFatal(os.Getwd())
+	config.Init(rootPath + "/env/.env." + *curEnv)
+
+	if err := <-server.Run(":" + config.Env.PORT); err != nil {
 		fmt.Println(err)
 	}
 	// server.Run(":7777")
-
 }

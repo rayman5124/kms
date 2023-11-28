@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"kms/tutorial/common/utils/errutil"
+	"kms/wallet/common/utils/errutil"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"

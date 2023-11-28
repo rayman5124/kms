@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"kms/tutorial/common/utils/errutil"
-	"kms/tutorial/common/utils/ethutil"
+	"kms/wallet/common/utils/errutil"
+	"kms/wallet/common/utils/ethutil"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind/backends"

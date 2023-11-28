@@ -1,9 +1,9 @@
 package controller
 
 import (
-	"kms/tutorial/api/model/dto"
-	"kms/tutorial/api/model/res"
-	srv "kms/tutorial/api/service"
+	"kms/wallet/app/api/model/dto"
+	"kms/wallet/app/api/model/res"
+	srv "kms/wallet/app/api/service"
 
 	"github.com/gofiber/fiber/v2"
 )

@@ -16,10 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
-	"kms/tutorial/api/model/dto"
-	"kms/tutorial/api/model/res"
-	"kms/tutorial/cache"
-	"kms/tutorial/common/utils/errutil"
+	"kms/wallet/app/api/model/dto"
+	"kms/wallet/app/api/model/res"
+	"kms/wallet/app/cache"
+	"kms/wallet/common/utils/errutil"
 )
 
 type ans1PubKeyInfoFormat struct {

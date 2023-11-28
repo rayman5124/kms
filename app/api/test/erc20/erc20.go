@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"kms/tutorial/common/utils/ethutil"
+	"kms/wallet/common/utils/ethutil"
 	"math/big"
 	"strings"
 

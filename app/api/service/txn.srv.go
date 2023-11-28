@@ -3,10 +3,10 @@ package srv
 import (
 	"encoding/hex"
 	"fmt"
-	"kms/tutorial/api/model/dto"
-	"kms/tutorial/api/model/res"
-	"kms/tutorial/common/utils/errutil"
-	"kms/tutorial/common/utils/ethutil"
+	"kms/wallet/app/api/model/dto"
+	"kms/wallet/app/api/model/res"
+	"kms/wallet/common/utils/errutil"
+	"kms/wallet/common/utils/ethutil"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -21,8 +21,8 @@ type TxnSrv struct {
 	kmsSrv  *KmsSrv
 }
 
-type AccessListTxnWithoutSig struct {
-	ChainID    *big.Int `rlp:"nil"`
+type AccessListTxnOptionalSig struct {
+	ChainID    *big.Int
 	Nonce      uint64
 	GasPrice   *big.Int
 	Gas        uint64
@@ -30,13 +30,11 @@ type AccessListTxnWithoutSig struct {
 	Value      *big.Int
 	Data       []byte
 	AccessList types.AccessList
-	R          *big.Int `rlp:"optional"`
-	S          *big.Int `rlp:"optional"`
-	V          *big.Int `rlp:"optional"`
+	V, R, S    *big.Int `rlp:"optional"`
 }
 
-type DynamicFeeTxnWithoutSig struct {
-	ChainID    *big.Int `rlp:"nil"`
+type DynamicFeeTxnOptionalSig struct {
+	ChainID    *big.Int
 	Nonce      uint64
 	GasTipCap  *big.Int
 	GasFeeCap  *big.Int
@@ -45,26 +43,23 @@ type DynamicFeeTxnWithoutSig struct {
 	Value      *big.Int
 	Data       []byte
 	AccessList types.AccessList
-	R          *big.Int `rlp:"optional"`
-	S          *big.Int `rlp:"optional"`
-	V          *big.Int `rlp:"optional"`
+	V, R, S    *big.Int `rlp:"optional"`
 }
 
-type BlobTxnWithoutSig struct {
-	ChainID    *uint256.Int `rlp:"nil"`
+type BlobTxnOptionalSig struct {
+	ChainID    *uint256.Int
 	Nonce      uint64
 	GasTipCap  *uint256.Int
 	GasFeeCap  *uint256.Int
 	Gas        uint64
-	To         common.Address `rlp:"nil"`
+	To         common.Address
 	Value      *uint256.Int
 	Data       []byte
 	AccessList types.AccessList
 	BlobFeeCap *uint256.Int
 	BlobHashes []common.Hash
-	R          *big.Int `rlp:"optional"`
-	S          *big.Int `rlp:"optional"`
-	V          *big.Int `rlp:"optional"`
+	Sidecar    *types.BlobTxSidecar `rlp:"-"`
+	V, R, S    *big.Int             `rlp:"optional"`
 }
 
 func NewTxnSrv(chainID *big.Int, kmsSrv *KmsSrv) *TxnSrv {
@@ -92,9 +87,8 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnDTO) (*res.SingedTxnRes, *erru
 	halfSecp256k1n := new(big.Int).Div(secp256k1n, big.NewInt(2)) // 타원곡선의 최대값의 절반
 	// S 값이 타원곡선 최댓값의 절반보다 크면 변환해서 사용 (reference -> EIP2 https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md)
 	if sBigInt := new(big.Int).SetBytes(S); sBigInt.Cmp(halfSecp256k1n) > 0 {
-		S = new(big.Int).Sub(secp256k1n, sBigInt).Bytes()
-
 		// 원래 ECDSA 서명 방식에서 기존 S, curve.n - S 둘다 유효한 값이지만 이더리움에서는 후자만 유효하다
+		S = new(big.Int).Sub(secp256k1n, sBigInt).Bytes()
 	}
 
 	pubKey, errWrap := s.kmsSrv.GetPubkey(&dto.AddressDTO{KeyID: txnDTO.KeyID})
@@ -112,7 +106,7 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnDTO) (*res.SingedTxnRes, *erru
 	if err != nil {
 		return nil, errutil.NewErrWrap(500, "SignSerializedTxn_types.transction_withSignature", err)
 	}
-	// 최종V = {0,1} + CHAIN_ID * 2 + 35
+	// 최종 V = {0,1} + CHAIN_ID * 2 + 35
 
 	byteSignedTxn, err := signedTxn.MarshalBinary()
 	if err != nil {
@@ -146,12 +140,11 @@ func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 	}
 	switch txBytes[0] { // 0번째 인덱스에는 트렌젝션 타입에 대한 정보가 담겨있다.
 	case types.AccessListTxType:
-		var inner AccessListTxnWithoutSig
+		var inner AccessListTxnOptionalSig
 		err := rlp.DecodeBytes(txBytes[1:], &inner)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("inner chainID", inner.ChainID)
 		return types.NewTx(&types.AccessListTx{
 			ChainID:    s.chainID,
 			Nonce:      inner.Nonce,
@@ -164,7 +157,7 @@ func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 		}), nil
 
 	case types.DynamicFeeTxType:
-		var inner DynamicFeeTxnWithoutSig
+		var inner DynamicFeeTxnOptionalSig
 		err := rlp.DecodeBytes(txBytes[1:], &inner)
 		if err != nil {
 			return nil, err
@@ -182,7 +175,7 @@ func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 		}), nil
 
 	case types.BlobTxType:
-		var inner BlobTxnWithoutSig
+		var inner BlobTxnOptionalSig
 		err := rlp.DecodeBytes(txBytes[1:], &inner)
 		if err != nil {
 			return nil, err
@@ -227,7 +220,3 @@ func (s *TxnSrv) getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []
 
 	return nil, errutil.NewErrWrap(500, "getFullSiganture", fmt.Errorf("failed to reconstruct public key from signature"))
 }
-
-// 02f86b800101841be5aec382892794a90ba7566dd8f2acda2c3af11bf426c569b7f74780b844a9059cbb000000000000000000000000acfe053e5d0c0fa206c53f09c3cc801301df3cef000000000000000000000000000000000000000000000001158e460913d00000c0808080
-// 02f87586059407ad8e8b818885ba43b7400085ba43b74000829217948b1c97e058e921d41f7abffc1099f071a2bb30c380b844a9059cbb0000000000000000000000005f90d10443b03f46a6c3513fe62f60733e7bcea70000000000000000000000000000000000000000000000008ac7230489e80000c0808080
-// 02f87886059407ad8e8b818885ba43b7400085ba43b74000829217948b1c97e058e921d41f7abffc1099f071a2bb30c380b844a9059cbb0000000000000000000000005f90d10443b03f46a6c3513fe62f60733e7bcea70000000000000000000000000000000000000000000000008ac7230489e80000c0808080

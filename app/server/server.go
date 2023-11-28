@@ -3,14 +3,13 @@ package server
 import (
 	"context"
 	"fmt"
-	ctrl "kms/tutorial/api/controller"
-	srv "kms/tutorial/api/service"
-	"kms/tutorial/common/config"
-	"kms/tutorial/common/utils/errutil"
-	_ "kms/tutorial/docs"
+	ctrl "kms/wallet/app/api/controller"
+	srv "kms/wallet/app/api/service"
+	"kms/wallet/common/config"
+	"kms/wallet/common/utils/errutil"
+	_ "kms/wallet/docs"
 	"log"
 	"math/big"
-	"os"
 
 	awscfg "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -20,22 +19,16 @@ import (
 )
 
 type Server struct {
-	App *fiber.App
+	app *fiber.App
 }
 
 func newServer() *Server {
-	var (
-		curEnv = "dev"
-	)
-
 	app := fiber.New()
 	app.Use(cors.New())
 	app.Get("/swagger/*", swagger.HandlerDefault)
 
-	rootPath := errutil.HandleFatal(os.Getwd())
-	config.Init(rootPath + "/env/.env." + curEnv)
 	creds := credentials.NewStaticCredentialsProvider(config.Env.AWS_ACCESS_KEY, config.Env.AWS_SECRET_KEY, "")
-	cfg := errutil.HandleFatal(
+	awsCfg := errutil.HandleFatal(
 		awscfg.LoadDefaultConfig(
 			context.Background(),
 			awscfg.WithCredentialsProvider(creds),
@@ -48,7 +41,7 @@ func newServer() *Server {
 	}
 
 	// service
-	kmsSrv := srv.NewKmsSrv(cfg)
+	kmsSrv := srv.NewKmsSrv(awsCfg)
 	txnSrv := srv.NewTxnSrv(chainID, kmsSrv)
 
 	// controller
@@ -56,13 +49,13 @@ func newServer() *Server {
 	ctrl.NewKmsCtrl(kmsSrv, apiRouter)
 	ctrl.NewTxnCtrl(txnSrv, apiRouter)
 
-	return &Server{App: app}
+	return &Server{app}
 }
 
 func Run(port string) chan error {
 	server := newServer()
 	ch := make(chan error)
-	go func() { ch <- server.App.Listen(port) }()
+	go func() { ch <- server.app.Listen(port) }()
 	fmt.Printf("Listening at %v\n", port)
 	return ch
 }

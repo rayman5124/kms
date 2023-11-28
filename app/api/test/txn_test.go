@@ -3,13 +3,13 @@ package test_test
 import (
 	"context"
 	"fmt"
-	"kms/tutorial/api/model/dto"
-	srv "kms/tutorial/api/service"
-	"kms/tutorial/api/test/erc20"
-	"kms/tutorial/api/test/testnet"
-	"kms/tutorial/common/config"
-	"kms/tutorial/common/utils/errutil"
-	"kms/tutorial/common/utils/ethutil"
+	"kms/wallet/app/api/model/dto"
+	srv "kms/wallet/app/api/service"
+	"kms/wallet/app/api/test/erc20"
+	"kms/wallet/app/api/test/testnet"
+	"kms/wallet/common/config"
+	"kms/wallet/common/utils/errutil"
+	"kms/wallet/common/utils/ethutil"
 	"math/big"
 	"os"
 	"path"
@@ -41,16 +41,13 @@ type TxnTestSuite struct {
 }
 
 func Test(t *testing.T) {
-	// if true {
-	// 	t.Skip()
-	// }
 	suite.Run(t, new(TxnTestSuite))
 }
 
 func (t *TxnTestSuite) SetupSuite() {
 	rootPath, err := os.Getwd()
 	t.NoError(err)
-	config.Init(path.Join(rootPath, "../../env/.env.dev"))
+	config.Init(path.Join(rootPath, "../../../env/.env.dev"))
 	creds := credentials.NewStaticCredentialsProvider(config.Env.AWS_ACCESS_KEY, config.Env.AWS_SECRET_KEY, "")
 	cfg := errutil.HandleFatal(
 		awscfg.LoadDefaultConfig(
@@ -118,7 +115,6 @@ func (t *TxnTestSuite) Test_LegacyTxn() {
 
 	receipt := t.signAndSendTxn(fromAccount.keyID, serializedTxn)
 	t.EqualValues(1, receipt.Status, "Txn failed")
-	t.T().Log("legacy gas used: ", receipt.GasUsed)
 
 	afterBal, err := t.erc20.BalanceOf(toAccount.Address, nil)
 	t.NoError(err)
@@ -140,7 +136,11 @@ func (t *TxnTestSuite) Test_EIP1559Txn() {
 	t.NoError(err)
 	calldata, err := t.erc20.TransferCallData(toAccount.Address, sendAmount)
 	t.NoError(err)
-	gas, err := t.testNet.Client.EstimateGas(context.Background(), ethereum.CallMsg{From: fromAccount.address, To: &t.erc20.CA, Data: calldata})
+
+	gas, err := t.testNet.Client.EstimateGas(context.Background(), ethereum.CallMsg{
+		From: fromAccount.address,
+		To:   &t.erc20.CA, Data: calldata,
+	})
 	t.NoError(err)
 	gasTipCap, err := t.testNet.Client.SuggestGasTipCap(context.Background())
 	gasFeeCap := new(big.Int).Add(t.testNet.Client.Blockchain().CurrentBlock().BaseFee, gasTipCap)
@@ -160,7 +160,6 @@ func (t *TxnTestSuite) Test_EIP1559Txn() {
 
 	receipt := t.signAndSendTxn(fromAccount.keyID, serializedTxn)
 	t.EqualValues(1, receipt.Status, "Txn failed")
-	t.T().Log("eip1559 gas used: ", receipt.GasUsed)
 
 	afterBal, err := t.erc20.BalanceOf(toAccount.Address, nil)
 	t.NoError(err)
@@ -222,7 +221,6 @@ func (t *TxnTestSuite) Test_AceesListTxn() {
 
 	receipt := t.signAndSendTxn(fromAccount.keyID, serializedTxn)
 	t.EqualValues(1, receipt.Status, "Txn failed")
-	t.T().Log("access list gas used: ", receipt.GasUsed)
 
 	afterBal, err := t.erc20.BalanceOf(toAccount.Address, nil)
 	t.NoError(err)
