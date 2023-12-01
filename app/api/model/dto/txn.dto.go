@@ -7,8 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type TxnDTO struct {
-	KeyID         string `json:"keyID" validate:"required" example:"f50a9229-e7c7-45ba-b06c-8036b894424e"`
+type SerializedTxnDTO struct {
+	KeyID         string `json:"keyID" validate:"required,ascii" example:"f50a9229-e7c7-45ba-b06c-8036b894424e"`
 	SerializedTxn string `json:"serializedTxn" validate:"required,hexadecimal" example:"0xea5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d018086059407ad8e8b8080"`
 }
 

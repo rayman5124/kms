@@ -1,7 +1,11 @@
 package dto
 
 import (
-	"kms/wallet/common/utils/errutil"
+	"errors"
+	"fmt"
+	"kms/wallet/common/errwrap"
+	"regexp"
+	"strings"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -15,18 +19,31 @@ var (
 	trans, _   = uni.GetTranslator("en")
 )
 
-func ShouldBind[T any](parser func(any) error) (*T, *errutil.ErrWrap) {
+func Init() {
+	validate.RegisterValidation("marker", func(fl validator.FieldLevel) bool {
+		re := regexp.MustCompile("^[\u0020-\u00FF]")
+		return re.MatchString(fl.Field().String())
+	})
+}
+
+func ShouldBind[T any](parser func(any) error) (*T, *errwrap.ErrWrap) {
 	var data T
 	if err := parser(&data); err != nil {
-		return nil, errutil.NewErrWrap(500, "ShouldBindDTO_fiber.ctx_parser", err)
+		return nil, errwrap.ClientErr(err)
 	}
 
-	if err := validate.Struct(&data); err != nil {
-		// errs := err.(validator.ValidationErrors)
-		// for _, e := range errs {
-		// 	fmt.Printf("err: %+#v", e)
-		// }
-		return nil, errutil.NewErrWrap(400, "", err)
+	if errs := validate.Struct(&data); errs != nil {
+		errMsgs := []string{}
+		for _, err := range errs.(validator.ValidationErrors) {
+			if err.Tag() == "required" {
+				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: required", err.Field()))
+			} else if err.Tag() == "lte" {
+				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: got '%v' should be less than %s", err.Field(), err.Value(), err.Param()))
+			} else {
+				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: got '%v' need correct %s", err.Field(), err.Value(), err.Tag()))
+			}
+		}
+		return nil, errwrap.ClientErr(errors.New(strings.Join(errMsgs, "\r\n")))
 	}
 
 	return &data, nil

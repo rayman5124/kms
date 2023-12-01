@@ -21,6 +21,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "Kms"
+                ],
                 "summary": "Get accounst list",
                 "parameters": [
                     {
@@ -50,6 +53,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "Kms"
+                ],
                 "summary": "Get address of target key id",
                 "parameters": [
                     {
@@ -75,6 +81,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "Kms"
+                ],
                 "summary": "Create new account",
                 "responses": {
                     "201": {
@@ -86,10 +95,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/error": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/health": {
+            "get": {
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/api/import/account": {
             "post": {
                 "produces": [
                     "application/json"
+                ],
+                "tags": [
+                    "Kms"
                 ],
                 "summary": "Import account to kms",
                 "parameters": [
@@ -99,7 +135,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ImportAddressDTO"
+                            "$ref": "#/definitions/dto.ImportAccountDTO"
                         }
                     }
                 ],
@@ -118,6 +154,9 @@ const docTemplate = `{
                 "produces": [
                     "application/json"
                 ],
+                "tags": [
+                    "Transaction"
+                ],
                 "summary": "Sign serialized transaction.",
                 "parameters": [
                     {
@@ -126,7 +165,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.TxnDTO"
+                            "$ref": "#/definitions/dto.SerializedTxnDTO"
                         }
                     }
                 ],
@@ -142,7 +181,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.ImportAddressDTO": {
+        "dto.ImportAccountDTO": {
             "type": "object",
             "required": [
                 "pk"
@@ -154,7 +193,7 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.TxnDTO": {
+        "dto.SerializedTxnDTO": {
             "type": "object",
             "required": [
                 "keyID",

@@ -1,0 +1,31 @@
+package controller
+
+import "github.com/gofiber/fiber/v2"
+
+type appCtrl struct {
+}
+
+func NewAppCtrl(router fiber.Router) *appCtrl {
+	c := &appCtrl{}
+
+	router.Get("/health", c.HealthCheck)
+	router.Get("/error", c.Error)
+
+	return c
+}
+
+// @tags Health
+// @success 200
+// @router /api/health [get]
+func (c *appCtrl) HealthCheck(ctx *fiber.Ctx) error {
+	return ctx.JSON(fiber.Map{
+		"success": true,
+	})
+}
+
+// @tags Health
+// @success 200
+// @router /api/error [get]
+func (c *appCtrl) Error(ctx *fiber.Ctx) error {
+	return fiber.ErrInternalServerError
+}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"kms/wallet/app/api/model/dto"
 	"kms/wallet/app/api/model/res"
-	"kms/wallet/common/utils/errutil"
+	"kms/wallet/common/errwrap"
 	"kms/wallet/common/utils/ethutil"
 	"math/big"
 
@@ -67,10 +67,10 @@ func NewTxnSrv(chainID *big.Int, kmsSrv *KmsSrv) *TxnSrv {
 }
 
 // 서명되지 않은 트렌젝션을 받아서, 서명한뒤 리턴
-func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnDTO) (*res.SingedTxnRes, *errutil.ErrWrap) {
+func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.SerializedTxnDTO) (*res.SingedTxnRes, *errwrap.ErrWrap) {
 	parsedTxn, err := s.parseTxn(txnDTO.SerializedTxn)
 	if err != nil {
-		return nil, errutil.NewErrWrap(400, "", err)
+		return nil, errwrap.ClientErr(err)
 	}
 
 	signer := types.NewCancunSigner(s.chainID)
@@ -79,7 +79,7 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnDTO) (*res.SingedTxnRes, *erru
 	// kms로부터 서명을 받아온다
 	R, S, errWrap := s.kmsSrv.Sign(txnDTO.KeyID, txnMsg)
 	if errWrap != nil {
-		return nil, errWrap
+		return nil, errWrap.AddLayer("SignSerializedTxn", "KmsSrv")
 	}
 
 	// S값 가공
@@ -93,24 +93,24 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnDTO) (*res.SingedTxnRes, *erru
 
 	pubKey, errWrap := s.kmsSrv.GetPubkey(&dto.AddressDTO{KeyID: txnDTO.KeyID})
 	if errWrap != nil {
-		return nil, errWrap
+		return nil, errWrap.ChangeCode(500).AddLayer("SignSerializedTxn", "KmsSrv")
 	}
 
 	// V 값을 유추해서 완전한 이더리움 서명을 만든다
 	signature, errWrap := s.getFullSignature(txnMsg, R, S, pubKey)
 	if errWrap != nil {
-		return nil, errWrap
+		return nil, errWrap.AddLayer("SignSerializedTxn", "TxnSrv")
 	}
 
 	signedTxn, err := parsedTxn.WithSignature(signer, signature)
 	if err != nil {
-		return nil, errutil.NewErrWrap(500, "SignSerializedTxn_types.transction_withSignature", err)
+		return nil, errwrap.ServerErr(err).AddLayer("SignSerializedTxn", "tyes.Transaction", "WithSignature")
 	}
 	// 최종 V = {0,1} + CHAIN_ID * 2 + 35
 
 	byteSignedTxn, err := signedTxn.MarshalBinary()
 	if err != nil {
-		return nil, errutil.NewErrWrap(500, "SignSerializedTxn_types.transaction_marshalBinary", err)
+		return nil, errwrap.ServerErr(err).AddLayer("SignSerializedTxn", "types.Transaction", "MarshalBinary")
 	}
 	return &res.SingedTxnRes{SignedTxn: "0x" + common.Bytes2Hex(byteSignedTxn)}, nil
 }
@@ -119,7 +119,7 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnDTO) (*res.SingedTxnRes, *erru
 func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 	txBytes := common.FromHex(serializedTxn)
 
-	// legacy 를 제외한 typed Transaction은 서명값(r, s, v)이 없는상태로 파싱해버리면 rlp: too few elements 에러를 뱉는다
+	// legacy 를 제외한 typed Transaction은 서명값(r, s, v)이 필수이기 때문에 서명이 없는 serialized txn을 파싱할때 에러가 발생한다.
 	// go-ethereum 의 types 패키지를 활용하여 typed Transaction을 생성하면 자동으로 default 서명이 들어가지만 (r:0, s:0, v:0)
 	// Type-script의 ethers를 통해 typed Transaction을 생성하면 사인전에 서명값이 아예 존재하지 않아서 바로 파싱해버리면 에러가 발생한다.
 	// 따라서 트렌젝션 타입별로 따로 처리를 해준다
@@ -202,7 +202,7 @@ func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 }
 
 // r, s 값과 퍼블릭 키를 바탕으로 v 값을 추정해서 완전한 서명을 만든 후 리턴
-func (s *TxnSrv) getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []byte) ([]byte, *errutil.ErrWrap) {
+func (s *TxnSrv) getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []byte) ([]byte, *errwrap.ErrWrap) {
 	vCandidates := [][]byte{{0}, {1}}
 
 	sigWithRS := append(ethutil.PadLeftTo32Bytes(R), ethutil.PadLeftTo32Bytes(S)...)
@@ -210,7 +210,7 @@ func (s *TxnSrv) getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []
 		fullSig := append(sigWithRS, v...)
 		recoverdPub, err := crypto.Ecrecover(msg, fullSig)
 		if err != nil {
-			return nil, errutil.NewErrWrap(500, "getFullSignature_crypto_ecrecover", err)
+			return nil, errwrap.ServerErr(err).AddLayer("getFullSignature", "crypto", "Encrecover")
 		}
 
 		if hex.EncodeToString(recoverdPub) == hex.EncodeToString(rightPubKey) {
@@ -218,5 +218,5 @@ func (s *TxnSrv) getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []
 		}
 	}
 
-	return nil, errutil.NewErrWrap(500, "getFullSiganture", fmt.Errorf("failed to reconstruct public key from signature"))
+	return nil, errwrap.ServerErr(fmt.Errorf("failed to reconstruct public key from signature")).AddLayer("getFullSignature")
 }

@@ -1,8 +1,6 @@
 package config
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 
@@ -16,18 +14,18 @@ type EnvStruct struct {
 	AWS_ACCESS_KEY string
 	AWS_SECRET_KEY string
 	AWS_REGION     string
+	Log            bool
 }
 
 var Env *EnvStruct
 
-func Init(envPath string) {
+func Init(envPath string) error {
 	if Env == nil {
 		Env = new(EnvStruct)
 	}
 
 	if err := godotenv.Load(envPath); err != nil {
-		fmt.Println(err)
-		log.Fatalf("Failed to load %s env file\n", envPath)
+		return err
 	}
 	Env.ENV = getEnv("ENV", true)
 	Env.PORT = getEnv("PORT", true)
@@ -35,9 +33,12 @@ func Init(envPath string) {
 	Env.AWS_ACCESS_KEY = getEnv("AWS_ACCESS_KEY", true)
 	Env.AWS_SECRET_KEY = getEnv("AWS_SECRET_KEY", true)
 	Env.AWS_REGION = getEnv("AWS_REGION", true)
+	Env.Log = true
 
-	envJson, _ := json.MarshalIndent(Env, "", "\t")
-	fmt.Println(string(envJson))
+	// envLog, _ := json.MarshalIndent(Env, "", "\t")
+	// fmt.Println(string(envLog))
+
+	return nil
 }
 
 func getEnv(key string, required bool) string {
