@@ -16,6 +16,34 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/account/keyID/{keyID}": {
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Kms"
+                ],
+                "summary": "delete account of target key id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "kms key-id",
+                        "name": "keyID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/res.AccountDeletionRes"
+                        }
+                    }
+                }
+            }
+        },
         "/api/account/list": {
             "get": {
                 "produces": [
@@ -27,6 +55,7 @@ const docTemplate = `{
                 "summary": "Get accounst list",
                 "parameters": [
                     {
+                        "maximum": 1000,
                         "type": "integer",
                         "example": 100,
                         "name": "limit",
@@ -135,7 +164,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.ImportAccountDTO"
+                            "$ref": "#/definitions/dto.PkDTO"
                         }
                     }
                 ],
@@ -181,7 +210,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.ImportAccountDTO": {
+        "dto.PkDTO": {
             "type": "object",
             "required": [
                 "pk"
@@ -207,6 +236,19 @@ const docTemplate = `{
                 "serializedTxn": {
                     "type": "string",
                     "example": "0xea5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d018086059407ad8e8b8080"
+                }
+            }
+        },
+        "res.AccountDeletionRes": {
+            "type": "object",
+            "properties": {
+                "deleteionDate": {
+                    "type": "string",
+                    "example": "2023-12-11 03:21:18 +0000 UTC"
+                },
+                "keyID": {
+                    "type": "string",
+                    "example": "f50a9229-e7c7-45ba-b06c-8036b894424e"
                 }
             }
         },

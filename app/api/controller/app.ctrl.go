@@ -5,13 +5,15 @@ import "github.com/gofiber/fiber/v2"
 type appCtrl struct {
 }
 
-func NewAppCtrl(router fiber.Router) *appCtrl {
+func NewAppCtrl() *appCtrl {
 	c := &appCtrl{}
 
+	return c
+}
+
+func (c *appCtrl) BootStrap(router fiber.Router) {
 	router.Get("/health", c.HealthCheck)
 	router.Get("/error", c.Error)
-
-	return c
 }
 
 // @tags Health

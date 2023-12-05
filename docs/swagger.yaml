@@ -1,11 +1,11 @@
 definitions:
-  dto.ImportAccountDTO:
+  dto.PkDTO:
     properties:
       pk:
         example: 637081577126ff5c2d327f992bd66548e00262578fd558d7fe272ef21b8bf825
         type: string
     required:
-      - pk
+    - pk
     type: object
   dto.SerializedTxnDTO:
     properties:
@@ -16,14 +16,23 @@ definitions:
         example: 0xea5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d018086059407ad8e8b8080
         type: string
     required:
-      - keyID
-      - serializedTxn
+    - keyID
+    - serializedTxn
+    type: object
+  res.AccountDeletionRes:
+    properties:
+      deleteionDate:
+        example: 2023-12-11 03:21:18 +0000 UTC
+        type: string
+      keyID:
+        example: f50a9229-e7c7-45ba-b06c-8036b894424e
+        type: string
     type: object
   res.AccountListRes:
     properties:
       accounts:
         items:
-          $ref: "#/definitions/res.AccountRes"
+          $ref: '#/definitions/res.AccountRes'
         type: array
       marker:
         example: AE0AAAACAHMAAAAJYWNjb3VudElkAHMAAAAMOTg1MDk2Mzk3ODIxAHMAAAAEdGtJZABzAAAAJDQ0YTAzNWU2LTY1OTEtNDgwMC04YjcwLWM3MzNiNTI2MzljMw
@@ -53,106 +62,125 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/account/keyID/{keyID}:
+    delete:
+      parameters:
+      - description: kms key-id
+        in: path
+        name: keyID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/res.AccountDeletionRes'
+      summary: delete account of target key id
+      tags:
+      - Kms
   /api/account/list:
     get:
       parameters:
-        - example: 100
-          in: query
-          name: limit
-          type: integer
-        - in: query
-          name: marker
-          type: string
+      - example: 100
+        in: query
+        maximum: 1000
+        name: limit
+        type: integer
+      - in: query
+        name: marker
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: "#/definitions/res.AccountListRes"
+            $ref: '#/definitions/res.AccountListRes'
       summary: Get accounst list
       tags:
-        - Kms
+      - Kms
   /api/address/keyID/{keyID}:
     get:
       parameters:
-        - description: kms key-id
-          in: path
-          name: keyID
-          required: true
-          type: string
+      - description: kms key-id
+        in: path
+        name: keyID
+        required: true
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: "#/definitions/res.AddressRes"
+            $ref: '#/definitions/res.AddressRes'
       summary: Get address of target key id
       tags:
-        - Kms
+      - Kms
   /api/create/account:
     post:
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: "#/definitions/res.AccountRes"
+            $ref: '#/definitions/res.AccountRes'
       summary: Create new account
       tags:
-        - Kms
+      - Kms
   /api/error:
     get:
       responses:
         "200":
           description: OK
       tags:
-        - Health
+      - Health
   /api/health:
     get:
       responses:
         "200":
           description: OK
       tags:
-        - Health
+      - Health
   /api/import/account:
     post:
       parameters:
-        - description: subject
-          in: body
-          name: subject
-          required: true
-          schema:
-            $ref: "#/definitions/dto.ImportAccountDTO"
+      - description: subject
+        in: body
+        name: subject
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PkDTO'
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: "#/definitions/res.AccountRes"
+            $ref: '#/definitions/res.AccountRes'
       summary: Import account to kms
       tags:
-        - Kms
+      - Kms
   /api/sign/txn:
     post:
       parameters:
-        - description: subject
-          in: body
-          name: subject
-          required: true
-          schema:
-            $ref: "#/definitions/dto.SerializedTxnDTO"
+      - description: subject
+        in: body
+        name: subject
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SerializedTxnDTO'
       produces:
-        - application/json
+      - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: "#/definitions/res.SingedTxnRes"
+            $ref: '#/definitions/res.SingedTxnRes'
       summary: Sign serialized transaction.
       tags:
-        - Transaction
+      - Transaction
 swagger: "2.0"

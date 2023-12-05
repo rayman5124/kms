@@ -91,7 +91,7 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.SerializedTxnDTO) (*res.SingedTxn
 		S = new(big.Int).Sub(secp256k1n, sBigInt).Bytes()
 	}
 
-	pubKey, errWrap := s.kmsSrv.GetPubkey(&dto.AddressDTO{KeyID: txnDTO.KeyID})
+	pubKey, errWrap := s.kmsSrv.GetPubkey(&dto.KeyIdDTO{KeyID: txnDTO.KeyID})
 	if errWrap != nil {
 		return nil, errWrap.ChangeCode(500).AddLayer("SignSerializedTxn", "KmsSrv")
 	}

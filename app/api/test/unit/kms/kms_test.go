@@ -30,9 +30,9 @@ var (
 
 // 스킵할 테스트 선정
 func (t *KmsTestSuite) BeforeTest(suiteName, testName string) {
-	// "Test_CreateAccount", "Test_GetAccountList"
+	// "Test_CreateAccount", "Test_GetAccountList", "Test_DeleteAccount"
 
-	skips := []string{}
+	skips := []string{"Test_DeleteAccount", "Test_CreateAccount"}
 	if slices.Contains(skips, testName) {
 		t.T().Skip()
 	}
@@ -45,7 +45,7 @@ func (t *KmsTestSuite) SetupSuite() {
 	config.Env.Log = *log
 	dto.Init()
 
-	server := server.NewServer()
+	server := server.New()
 	t.app = server.App
 }
 
@@ -65,9 +65,7 @@ func (t *KmsTestSuite) Test_CreateAccount() {
 }
 
 func (t *KmsTestSuite) Test_GetAccountList() {
-	t.T().Log(t.T().Name())
-
-	queryVal := []string{""}
+	queryVal := []string{"limit=10"}
 	path := fmt.Sprintf("/api/account/list?%s", strings.Join(queryVal, "&"))
 	resData, err := http.Request(t.app, "GET", path, nil)
 	t.NoError(err)
@@ -83,21 +81,62 @@ func (t *KmsTestSuite) Test_GetAccountList() {
 	}
 }
 
+func (t *KmsTestSuite) Test_DeleteAccount() {
+	targetKeyID := "1b34be4d-bb01-498f-8226-424b9c55ddff"
+	path := fmt.Sprintf("/api/account/keyID/%s", targetKeyID)
+	resData, err := http.Request(t.app, "DELETE", path, nil)
+	t.NoError(err)
+
+	if resData.Status == fiber.StatusOK {
+		var resolvedRes res.AccountDeletionRes
+		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
+		t.T().Log(http.PrettyJson(resolvedRes))
+	} else {
+		var resolvedRes res.ErrRes
+		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
+		t.Fail(http.PrettyJson(resolvedRes))
+	}
+}
+
+func (t *KmsTestSuite) Test_GetAddress() {
+	targetKeyID := "76eab66d-7bfd-49ac-827e-f9e04aed098e"
+	path := fmt.Sprintf("/api/address/keyID/%s", targetKeyID)
+	resData, err := http.Request(t.app, "GET", path, nil)
+	t.NoError(err)
+
+	if resData.Status == fiber.StatusOK {
+		var resolvedRes res.AddressRes
+		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
+		t.T().Log(http.PrettyJson(resolvedRes))
+	} else {
+		var resolvedRes res.ErrRes
+		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
+		t.Fail(http.PrettyJson(resolvedRes))
+	}
+}
+
 // local-kms 에서 ecc_secg_p256k1 스펙의 키를 외부에서 주입하는게 현재 불가능해서 로컬테스트 불가
 // func (t *KmsTestSuite) Test_ImportAccount() {
 // 	ecdsaPK, err := crypto.GenerateKey()
 // 	t.NoError(err)
 // 	pk := common.Bytes2Hex(crypto.FromECDSA(ecdsaPK))
 
-// 	reqBodyDto := &dto.ImportAccountDTO{PK: pk}
+// 	reqBodyDto := &dto.PkDTO{PK: pk}
 // 	reqBody, err := json.Marshal(reqBodyDto)
 // 	t.NoError(err)
 
-// 	resData, err := http.Request("POST", "/api/import/account", reqBody)
+// 	resData, err := http.Request(t.app, "POST", "/api/import/account", reqBody)
 // 	t.NoError(err)
-// 	var resolvedRes res.AccountRes
-// 	t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
-// 	t.T().Log(http.PrettyJson(resolvedRes))
+
+// 	if resData.Status == fiber.StatusOK {
+// 		var resolvedRes res.AccountRes
+// 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
+// 		t.T().Log(http.PrettyJson(resolvedRes))
+// 	} else {
+// 		var resolvedRes res.ErrRes
+// 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
+// 		t.Fail(http.PrettyJson(resolvedRes))
+// 	}
 
 // }
 

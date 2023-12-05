@@ -37,10 +37,11 @@ func AwsErr(err error) *ErrWrap {
 		awsErrRes        *awsHttp.ResponseError
 		notFoundErr      *awsTypes.NotFoundException
 		invalidMarkerErr *awsTypes.InvalidMarkerException
+		invalidStateErr  *awsTypes.KMSInvalidStateException
 		code             = 500
 	)
 
-	if errors.As(err, &notFoundErr) {
+	if errors.As(err, &notFoundErr) { // 없거나 잘못된 kms-keyID
 		code = 400
 		if splitedMsg := strings.Split(*notFoundErr.Message, "/"); len(splitedMsg) > 1 {
 			// not found
@@ -49,10 +50,20 @@ func AwsErr(err error) *ErrWrap {
 			// invalid key
 			err = fmt.Errorf(*notFoundErr.Message)
 		}
-	} else if errors.As(err, &invalidMarkerErr) {
+
+	} else if errors.As(err, &invalidMarkerErr) { // 없거나 잘못된 marker
 		code = 400
 		newMsg, _ := strings.CutSuffix(invalidMarkerErr.Error(), ": ")
 		err = fmt.Errorf(newMsg)
+
+	} else if errors.As(err, &invalidStateErr) { // 사용불가능한 상태의 kms-key
+		code = 400
+		if splitedMsg := strings.Split(*invalidStateErr.Message, "/"); len(splitedMsg) > 1 {
+			err = fmt.Errorf("keyId '%v", splitedMsg[1])
+		} else {
+			err = fmt.Errorf(*invalidStateErr.Message)
+		}
+
 	} else if errors.As(err, &awsErrRes) {
 		// err = awsErrRes.ResponseError.Err
 	}

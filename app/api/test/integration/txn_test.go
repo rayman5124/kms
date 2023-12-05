@@ -59,7 +59,7 @@ func (t *TxnTestSuite) SetupSuite() {
 	config.Env.Log = *log
 	dto.Init()
 
-	server := server.NewServer()
+	server := server.New()
 	t.app = server.App
 	t.testNet = testnet.NewTestNet()
 

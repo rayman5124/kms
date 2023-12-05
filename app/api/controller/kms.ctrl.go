@@ -11,15 +11,16 @@ type kmsCtrl struct {
 	kmsSrv *srv.KmsSrv
 }
 
-func NewKmsCtrl(kmsSrv *srv.KmsSrv, router fiber.Router) *kmsCtrl {
-	c := &kmsCtrl{kmsSrv}
+func NewKmsCtrl(kmsSrv *srv.KmsSrv) *kmsCtrl {
+	return &kmsCtrl{kmsSrv}
+}
 
+func (c *kmsCtrl) BootStrap(router fiber.Router) {
 	router.Post("/create/account", c.CreateAccount)
 	router.Post("/import/account", c.ImportAccount)
 	router.Get("/address/keyID/:keyID", c.GetAddress)
 	router.Get("/account/list", c.GetAccountList)
-
-	return c
+	router.Delete("/account/keyID/:keyID", c.DeleteAccount)
 }
 
 // @tags Kms
@@ -29,12 +30,12 @@ func NewKmsCtrl(kmsSrv *srv.KmsSrv, router fiber.Router) *kmsCtrl {
 // @router  /api/address/keyID/{keyID} [get]
 // @param   keyID path string true "kms key-id"
 func (c *kmsCtrl) GetAddress(ctx *fiber.Ctx) error {
-	AddressDTO, errWrap := dto.ShouldBind[dto.AddressDTO](ctx.ParamsParser)
+	KeyIdDTO, errWrap := dto.ShouldBind[dto.KeyIdDTO](ctx.ParamsParser)
 	if errWrap != nil {
 		return errWrap.CombineLayer()
 	}
 
-	addressRes, errWrap := c.kmsSrv.GetAddress(AddressDTO)
+	addressRes, errWrap := c.kmsSrv.GetAddress(KeyIdDTO)
 	if errWrap != nil {
 		return errWrap.CombineLayer()
 	}
@@ -54,7 +55,7 @@ func (c *kmsCtrl) GetAccountList(ctx *fiber.Ctx) error {
 		return errWrap.CombineLayer()
 	}
 
-	accountListRes, errWrap := c.kmsSrv.GetAccountList(accountListDTO.Limit, accountListDTO.Marker)
+	accountListRes, errWrap := c.kmsSrv.GetAccountList(accountListDTO)
 	if errWrap != nil {
 		return errWrap.CombineLayer()
 	}
@@ -81,16 +82,36 @@ func (c *kmsCtrl) CreateAccount(ctx *fiber.Ctx) error {
 // @produce json
 // @success 201 {object} res.AccountRes
 // @router  /api/import/account [post]
-// @param   subject body dto.ImportAccountDTO true "subject"
+// @param   subject body dto.PkDTO true "subject"
 func (c *kmsCtrl) ImportAccount(ctx *fiber.Ctx) error {
-	importAddressDTO, errWrap := dto.ShouldBind[dto.ImportAccountDTO](ctx.BodyParser)
+	pkDTO, errWrap := dto.ShouldBind[dto.PkDTO](ctx.BodyParser)
 	if errWrap != nil {
 		return errWrap.CombineLayer()
 	}
-	accountRes, errWrap := c.kmsSrv.ImportAccount(importAddressDTO.PK)
+	accountRes, errWrap := c.kmsSrv.ImportAccount(pkDTO)
 	if errWrap != nil {
 		return errWrap.CombineLayer()
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(accountRes)
+}
+
+// @tags Kms
+// @summary delete account of target key id
+// @produce json
+// @success 200 {object} res.AccountDeletionRes
+// @router  /api/account/keyID/{keyID} [delete]
+// @param   keyID path string true "kms key-id"
+func (c *kmsCtrl) DeleteAccount(ctx *fiber.Ctx) error {
+	keyIdDTO, errWrap := dto.ShouldBind[dto.KeyIdDTO](ctx.ParamsParser)
+	if errWrap != nil {
+		return errWrap.CombineLayer()
+	}
+
+	accountDeletionRes, errWrap := c.kmsSrv.DeleteAccount(keyIdDTO)
+	if errWrap != nil {
+		return errWrap.CombineLayer()
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(accountDeletionRes)
 }

@@ -11,12 +11,14 @@ type txnCtrl struct {
 	txnSrv *srv.TxnSrv
 }
 
-func NewTxnCtrl(txnSrv *srv.TxnSrv, router fiber.Router) *txnCtrl {
+func NewTxnCtrl(txnSrv *srv.TxnSrv) *txnCtrl {
 	c := &txnCtrl{txnSrv}
 
-	router.Post("/sign/txn", c.SignSerializedTxn)
-
 	return c
+}
+
+func (c *txnCtrl) BootStrap(router fiber.Router) {
+	router.Post("/sign/txn", c.SignSerializedTxn)
 }
 
 // @tags Transaction

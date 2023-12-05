@@ -30,10 +30,11 @@ func main() {
 	}
 	dto.Init()
 
-	// if err := <-server.Run(":" + config.Env.PORT); err != nil {
+	// if err := <-server.New.Run(":" + config.Env.PORT); err != nil {
 	// 	fmt.Println(err)
 	// }
-	if err := server.Run(":7777"); err != nil {
+	if err := server.New().Run(":7777"); err != nil {
 		log.Fatal(err)
 	}
+
 }

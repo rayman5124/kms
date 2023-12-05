@@ -24,11 +24,11 @@ import (
 	"github.com/gofiber/swagger"
 )
 
-type Server struct {
+type server struct {
 	App *fiber.App
 }
 
-func NewServer() *Server {
+func New() *server {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: ErrHandler,
 	})
@@ -37,7 +37,10 @@ func NewServer() *Server {
 		Expiration: 60 * time.Second,
 		Max:        1000,
 	}))
-	app.Get("/swagger/*", swagger.HandlerDefault)
+	app.Use(recover.New())
+	// swagger
+	app.Get("/swagger/*", swagger.HandlerDefault) // logger 세팅 전에 설정
+	// logger
 	if config.Env.Log {
 		app.Use(logger.New(logger.Config{ // Only all routes that are registered after this one will be logged
 			CustomTags: map[string]logger.LogFunc{
@@ -56,8 +59,7 @@ func NewServer() *Server {
 			TimeFormat: timeutil.DateFormat,
 		}))
 	}
-	app.Use(recover.New())
-
+	// kms client
 	var kmsClient *kms.Client
 	creds := credentials.NewStaticCredentialsProvider(config.Env.AWS_ACCESS_KEY, config.Env.AWS_SECRET_KEY, "")
 	awsCfg :=
@@ -85,22 +87,20 @@ func NewServer() *Server {
 
 	// controller
 	apiRouter := app.Group("/api")
-	ctrl.NewAppCtrl(apiRouter)
-	ctrl.NewKmsCtrl(kmsSrv, apiRouter)
-	ctrl.NewTxnCtrl(txnSrv, apiRouter)
+	ctrl.NewAppCtrl().BootStrap(apiRouter)
+	ctrl.NewKmsCtrl(kmsSrv).BootStrap(apiRouter)
+	ctrl.NewTxnCtrl(txnSrv).BootStrap(apiRouter)
 
-	return &Server{app}
+	return &server{app}
 }
 
-// func Run(port string) <-chan error {
-// 	s := newServer()
+// func (s *server) Run(port string) <-chan error {
 // 	ch := make(chan error)
-// 	go func() { ch <- s.app.Listen(port) }()
+// 	go func() { ch <- s.App.Listen(port) }()
 // 	fmt.Printf("Listening at %v\n", port)
 // 	return ch
 // }
 
-func Run(port string) error {
-	server := NewServer()
-	return server.App.Listen(port)
+func (s *server) Run(port string) error {
+	return s.App.Listen(port)
 }
