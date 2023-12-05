@@ -1,7 +1,7 @@
 package srv
 
 import (
-	"encoding/hex"
+	"bytes"
 	"fmt"
 	"kms/wallet/app/api/model/dto"
 	"kms/wallet/app/api/model/res"
@@ -213,7 +213,7 @@ func (s *TxnSrv) getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []
 			return nil, errwrap.ServerErr(err).AddLayer("getFullSignature", "crypto", "Encrecover")
 		}
 
-		if hex.EncodeToString(recoverdPub) == hex.EncodeToString(rightPubKey) {
+		if bytes.Equal(recoverdPub, rightPubKey) {
 			return fullSig, nil
 		}
 	}

@@ -153,6 +153,10 @@ func (s *KmsSrv) ImportAccount(pkDTO *dto.PkDTO) (*res.AccountRes, *errwrap.ErrW
 	if err != nil {
 		return nil, errwrap.AwsErr(err).ChangeCode(500).AddLayer("ImportAccount", "kms.Client", "GetParametersForImport")
 	}
+	rsaPubKey, err := x509.ParsePKIXPublicKey(importParameter.PublicKey)
+	if err != nil {
+		return nil, errwrap.ServerErr(err).AddLayer("ImportAccount", "x509", "parsePKIXPublicKey")
+	}
 
 	// ==== private key ASN.1 데이터 형식으로 DER 인코딩 ====
 	ecdsaPK, err := crypto.HexToECDSA(pkDTO.PK)
@@ -182,11 +186,6 @@ func (s *KmsSrv) ImportAccount(pkDTO *dto.PkDTO) (*res.AccountRes, *errwrap.ErrW
 		return nil, errwrap.ServerErr(err).AddLayer("ImportAccount", "asn1", "Marshal")
 	}
 	// ================================================
-
-	rsaPubKey, err := x509.ParsePKIXPublicKey(importParameter.PublicKey)
-	if err != nil {
-		return nil, errwrap.ServerErr(err).AddLayer("ImportAccount", "x509", "parsePKIXPublicKey")
-	}
 
 	encryptedMaterial, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, rsaPubKey.(*rsa.PublicKey), pkcs8Asn1EcPK, nil)
 	if err != nil {
@@ -241,7 +240,6 @@ func (s *KmsSrv) Sign(keyID string, msg []byte) ([]byte, []byte, *errwrap.ErrWra
 	}
 
 	return sigAsn1.R.Bytes, sigAsn1.S.Bytes, nil
-
 }
 
 // keyID와 매칭되는 public key(바이트)를 리턴
@@ -279,4 +277,5 @@ func (s *KmsSrv) getPubKey(keyID string) (*ecdsa.PublicKey, *errwrap.ErrWrap) {
 		s.pubKeyCache.Add(keyID, pubKey)
 		return pubKey, nil
 	}
+
 }
