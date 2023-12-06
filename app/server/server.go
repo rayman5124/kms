@@ -37,7 +37,9 @@ func New() *server {
 		Expiration: 60 * time.Second,
 		Max:        1000,
 	}))
-	app.Use(recover.New())
+	app.Use(recover.New(recover.Config{
+		EnableStackTrace: true,
+	}))
 	// swagger
 	app.Get("/swagger/*", swagger.HandlerDefault) // logger 세팅 전에 설정
 	// logger

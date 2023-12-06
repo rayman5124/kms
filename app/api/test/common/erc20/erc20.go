@@ -48,12 +48,12 @@ func (e *ERC20) TransferCallData(to common.Address, weiAmount *big.Int) ([]byte,
 	return e.abi.Pack("transfer", to, weiAmount)
 }
 
-func (e *ERC20) BalanceOfCallData(owner common.Address) ([]byte, error) {
+func (e *ERC20) balancOfCallData(owner common.Address) ([]byte, error) {
 	return e.abi.Pack("balanceOf", owner)
 }
 
 func (e *ERC20) BalanceOf(owner common.Address, blockNumber *big.Int) (*big.Int, error) {
-	calldata, err := e.BalanceOfCallData(owner)
+	calldata, err := e.balancOfCallData(owner)
 	if err != nil {
 		return nil, err
 	}

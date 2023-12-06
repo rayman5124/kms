@@ -88,6 +88,7 @@ func (c *kmsCtrl) ImportAccount(ctx *fiber.Ctx) error {
 	if errWrap != nil {
 		return errWrap.CombineLayer()
 	}
+
 	accountRes, errWrap := c.kmsSrv.ImportAccount(pkDTO)
 	if errWrap != nil {
 		return errWrap.CombineLayer()

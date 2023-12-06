@@ -133,30 +133,38 @@ func (s *KmsSrv) ImportAccount(pkDTO *dto.PkDTO) (*res.AccountRes, *errwrap.ErrW
 	// 특정 key-id 에 외부 pk를 주입한 이후 주입된 pk 를 삭제하고 다른 pk를 주입하는건 불가능하다
 	// 한번이라도 외부키가 주입된 key-id는 이후로 계속 같은 외부키만 주입받을 수 있다.
 
-	// kms key 껍데기 생성
-	key, err := s.client.CreateKey(context.TODO(), &kms.CreateKeyInput{
-		KeyUsage: types.KeyUsageTypeSignVerify,
-		KeySpec:  types.KeySpecEccSecgP256k1,
-		Origin:   types.OriginTypeExternal,
-	})
-	if err != nil {
-		return nil, errwrap.AwsErr(err).ChangeCode(500).AddLayer("ImportAccount", "kms.Client", "CreateKey")
-	}
-	keyID := *key.KeyMetadata.KeyId
+	resChan := make(chan map[string]interface{})
+	go func() {
+		resMap := make(map[string]interface{})
 
-	// private key 주입과정에서 필요한 파라미터값 요청
-	importParameter, err := s.client.GetParametersForImport(context.TODO(), &kms.GetParametersForImportInput{
-		KeyId:             &keyID,
-		WrappingAlgorithm: types.AlgorithmSpecRsaesOaepSha256,
-		WrappingKeySpec:   types.WrappingKeySpecRsa2048,
-	})
-	if err != nil {
-		return nil, errwrap.AwsErr(err).ChangeCode(500).AddLayer("ImportAccount", "kms.Client", "GetParametersForImport")
-	}
-	rsaPubKey, err := x509.ParsePKIXPublicKey(importParameter.PublicKey)
-	if err != nil {
-		return nil, errwrap.ServerErr(err).AddLayer("ImportAccount", "x509", "parsePKIXPublicKey")
-	}
+		// kms key 껍데기 생성
+		key, err := s.client.CreateKey(context.TODO(), &kms.CreateKeyInput{
+			KeyUsage: types.KeyUsageTypeSignVerify,
+			KeySpec:  types.KeySpecEccSecgP256k1,
+			Origin:   types.OriginTypeExternal,
+		})
+		if err != nil {
+			resMap["errWrap"] = errwrap.AwsErr(err).ChangeCode(500).AddLayer("ImportAccount", "kms.Client", "CreateKey")
+			resChan <- resMap
+			return
+		}
+
+		// private key 주입과정에서 필요한 파라미터값 요청
+		importParameter, err := s.client.GetParametersForImport(context.TODO(), &kms.GetParametersForImportInput{
+			KeyId:             key.KeyMetadata.KeyId,
+			WrappingAlgorithm: types.AlgorithmSpecRsaesOaepSha256,
+			WrappingKeySpec:   types.WrappingKeySpecRsa2048,
+		})
+		if err != nil {
+			resMap["errWrap"] = errwrap.AwsErr(err).ChangeCode(500).AddLayer("ImportAccount", "kms.Client", "GetParametersForImport")
+			resChan <- resMap
+			return
+		}
+
+		resMap["keyID"] = key.KeyMetadata.KeyId
+		resMap["importParameter"] = importParameter
+		resChan <- resMap
+	}()
 
 	// ==== private key ASN.1 데이터 형식으로 DER 인코딩 ====
 	ecdsaPK, err := crypto.HexToECDSA(pkDTO.PK)
@@ -187,6 +195,17 @@ func (s *KmsSrv) ImportAccount(pkDTO *dto.PkDTO) (*res.AccountRes, *errwrap.ErrW
 	}
 	// ================================================
 
+	kmsRes := <-resChan
+	if errWrap := kmsRes["errWrap"]; errWrap != nil {
+		return nil, errWrap.(*errwrap.ErrWrap)
+	}
+	importParameter := kmsRes["importParameter"].(*kms.GetParametersForImportOutput)
+	keyID := kmsRes["keyID"].(*string)
+
+	rsaPubKey, err := x509.ParsePKIXPublicKey(importParameter.PublicKey)
+	if err != nil {
+		return nil, errwrap.ServerErr(err).AddLayer("ImportAccount", "x509", "parsePKIXPublicKey")
+	}
 	encryptedMaterial, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, rsaPubKey.(*rsa.PublicKey), pkcs8Asn1EcPK, nil)
 	if err != nil {
 		return nil, errwrap.ServerErr(err).AddLayer("ImportAccount", "rsa", "EncryptOAEP")
@@ -194,7 +213,7 @@ func (s *KmsSrv) ImportAccount(pkDTO *dto.PkDTO) (*res.AccountRes, *errwrap.ErrW
 
 	_, err = s.client.ImportKeyMaterial(context.TODO(), &kms.ImportKeyMaterialInput{
 		ImportToken:          importParameter.ImportToken,
-		KeyId:                &keyID,
+		KeyId:                keyID,
 		EncryptedKeyMaterial: encryptedMaterial,
 		ExpirationModel:      types.ExpirationModelTypeKeyMaterialDoesNotExpire,
 	})
@@ -202,11 +221,11 @@ func (s *KmsSrv) ImportAccount(pkDTO *dto.PkDTO) (*res.AccountRes, *errwrap.ErrW
 		return nil, errwrap.AwsErr(err).ChangeCode(500).AddLayer("ImportAccount", "kms.Client", "ImportKeyMaterial")
 	}
 
-	addressRes, errWrap := s.GetAddress(&dto.KeyIdDTO{KeyID: keyID})
+	addressRes, errWrap := s.GetAddress(&dto.KeyIdDTO{KeyID: *kmsRes["keyID"].(*string)})
 	if errWrap != nil {
 		return nil, errWrap.ChangeCode(500).AddLayer("ImportAccount", "KmsSrv")
 	}
-	return &res.AccountRes{KeyID: keyID, Address: addressRes.Address}, nil
+	return &res.AccountRes{KeyID: *keyID, Address: addressRes.Address}, nil
 }
 
 func (s *KmsSrv) DeleteAccount(keyIdDTO *dto.KeyIdDTO) (*res.AccountDeletionRes, *errwrap.ErrWrap) {
