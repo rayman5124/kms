@@ -7,16 +7,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 )
 
 var (
-	validate   = validator.New()
-	enInstance = en.New()
-	uni        = ut.New(enInstance, enInstance)
-	trans, _   = uni.GetTranslator("en")
+	validate = validator.New()
 )
 
 func Init() {
