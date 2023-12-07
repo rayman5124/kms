@@ -35,7 +35,8 @@ func NewERC20WithDeploy(ownerPK *ecdsa.PrivateKey, client *backends.SimulatedBac
 		return nil, err
 	}
 
-	CA, _, _, err := bind.DeployContract(transactor, abi, common.FromHex(ERC20ByteCode), client, "TestToken", "TTK", ethutil.ParseUnit("10000000000", 18))
+	initMintAmount, _ := ethutil.ParseUnit("10000000000", 18)
+	CA, _, _, err := bind.DeployContract(transactor, abi, common.FromHex(ERC20ByteCode), client, "TestToken", "TTK", initMintAmount)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,11 @@ func (e *ERC20) Faucet(to common.Address, ethAmount string) error {
 	if err != nil {
 		return err
 	}
-	mintCalldata, err := e.abi.Pack("mint", to, ethutil.ParseUnit(ethAmount, 18))
+	mintAmount, err := ethutil.ParseUnit(ethAmount, 18)
+	if err != nil {
+		return err
+	}
+	mintCalldata, err := e.abi.Pack("mint", to, mintAmount)
 	if err != nil {
 		return err
 	}
@@ -116,8 +121,8 @@ func (e *ERC20) Faucet(to common.Address, ethAmount string) error {
 		return err
 	}
 
-	if increased := new(big.Int).Sub(curBal, beforeBal); increased.Cmp(ethutil.ParseUnit(ethAmount, 18)) != 0 {
-		return fmt.Errorf("faucet failed, balance increased %v expected: %v", increased, ethutil.ParseUnit(ethAmount, 18))
+	if increased := new(big.Int).Sub(curBal, beforeBal); increased.Cmp(mintAmount) != 0 {
+		return fmt.Errorf("faucet failed, balance increased %v expected: %v", increased, mintAmount)
 	}
 
 	return nil

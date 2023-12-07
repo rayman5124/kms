@@ -68,18 +68,19 @@ func NewTxnSrv(chainID *big.Int, kmsSrv *KmsSrv) *TxnSrv {
 
 // 서명되지 않은 트렌젝션을 받아서, 서명한뒤 리턴
 func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.SerializedTxnDTO) (*res.SingedTxnRes, *errwrap.ErrWrap) {
-	// 퍼블릭 키에대한 요청 먼저 고루틴으로
-	pubKeyChan := make(chan map[string]interface{})
+	// 퍼블릭 키에 대한 요청 먼저 고루틴으로
+	var (
+		pubKey        []byte
+		pubKeyErrChan = make(chan *errwrap.ErrWrap)
+	)
 	go func() {
-		pubKeyRes := make(map[string]interface{})
-		pubKey, errWrap := s.kmsSrv.GetPubkey(&dto.KeyIdDTO{KeyID: txnDTO.KeyID})
+		pubKeyRet, errWrap := s.kmsSrv.GetPubkey(&dto.KeyIdDTO{KeyID: txnDTO.KeyID})
 		if errWrap != nil {
-			pubKeyRes["errWrap"] = errWrap.ChangeCode(500).AddLayer("SignSerializedTxn", "KmsSrv")
-			pubKeyChan <- pubKeyRes
-			return
+			pubKeyErrChan <- errWrap.ChangeCode(500).AddLayer("SignSerializedTxn", "KmsSrv")
+		} else {
+			pubKey = pubKeyRet
+			pubKeyErrChan <- nil
 		}
-		pubKeyRes["pubKey"] = pubKey
-		pubKeyChan <- pubKeyRes
 	}()
 
 	parsedTxn, err := s.parseTxn(txnDTO.SerializedTxn)
@@ -106,11 +107,10 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.SerializedTxnDTO) (*res.SingedTxn
 	}
 
 	// V 값을 유추해서 완전한 이더리움 서명을 만든다
-	pubKeyRes := <-pubKeyChan
-	if pubKeyRes["errWrap"] != nil {
-		return nil, pubKeyRes["errWrap"].(*errwrap.ErrWrap)
+	if pubKeyErr := <-pubKeyErrChan; pubKeyErr != nil {
+		return nil, pubKeyErr
 	}
-	signature, errWrap := s.getFullSignature(txnMsg, R, S, pubKeyRes["pubKey"].([]byte))
+	signature, errWrap := s.getFullSignature(txnMsg, R, S, pubKey)
 	if errWrap != nil {
 		return nil, errWrap.AddLayer("SignSerializedTxn", "TxnSrv")
 	}

@@ -35,11 +35,12 @@ func ShouldBind[T any](parser func(any) error) (*T, *errwrap.ErrWrap) {
 	if errs := validate.Struct(&data); errs != nil {
 		errMsgs := []string{}
 		for _, err := range errs.(validator.ValidationErrors) {
-			if err.Tag() == "required" {
+			switch err.Tag() {
+			case "required":
 				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: required", err.Field()))
-			} else if err.Tag() == "lte" {
+			case "lte":
 				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: got '%v' should be less than %s", err.Field(), err.Value(), err.Param()))
-			} else {
+			default:
 				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: got '%v' need correct %s", err.Field(), err.Value(), err.Tag()))
 			}
 		}

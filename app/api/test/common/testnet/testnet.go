@@ -33,8 +33,8 @@ type TestNet struct {
 }
 
 var (
-	genesis_accounts     = 10
-	genesis_alloc_amount = ethutil.ParseUnit("1000000", 18)
+	genesis_accounts        = 10
+	genesis_alloc_amount, _ = ethutil.ParseUnit("1000000", 18)
 )
 
 func NewTestNet() *TestNet {
@@ -69,9 +69,12 @@ func NewTestNet() *TestNet {
 }
 
 func (t *TestNet) Faucet(to common.Address, ethAmount string) error {
-	val := ethutil.ParseUnit(ethAmount, 18)
+	val, err := ethutil.ParseUnit(ethAmount, 18)
+	if err != nil {
+		return err
+	}
 	if ethAmount == "" {
-		val = ethutil.ParseUnit("100", 18)
+		val, _ = ethutil.ParseUnit("100", 18)
 	}
 
 	gasPrice, err := t.Client.SuggestGasPrice(context.Background())

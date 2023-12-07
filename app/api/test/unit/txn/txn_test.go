@@ -71,9 +71,9 @@ func (t *TxnTestSuite) AfterTest(suiteName, testName string) {
 
 func (t *TxnTestSuite) Test_LegacyTxn() {
 	var (
-		fromAccount *res.AccountRes
-		toAccount   = t.testNet.Accounts[5]
-		sendAmount  = ethutil.ParseUnit("20", 18)
+		fromAccount   *res.AccountRes
+		toAccount     = t.testNet.Accounts[5]
+		sendAmount, _ = ethutil.ParseUnit("20", 18)
 	)
 	fromAccount, err := t.getKmsAccount()
 	t.NoError(err)
@@ -114,9 +114,9 @@ func (t *TxnTestSuite) Test_LegacyTxn() {
 
 func (t *TxnTestSuite) Test_EIP1559Txn() {
 	var (
-		fromAccount *res.AccountRes
-		toAccount   = t.testNet.Accounts[0]
-		sendAmount  = ethutil.ParseUnit("20", 18)
+		fromAccount   *res.AccountRes
+		toAccount     = t.testNet.Accounts[0]
+		sendAmount, _ = ethutil.ParseUnit("20", 18)
 	)
 	fromAccount, err := t.getKmsAccount()
 	t.NoError(err)
@@ -163,9 +163,9 @@ func (t *TxnTestSuite) Test_EIP1559Txn() {
 
 func (t *TxnTestSuite) Test_AceesListTxn() {
 	var (
-		fromAccount *res.AccountRes
-		toAccount   = t.testNet.Accounts[0]
-		sendAmount  = ethutil.ParseUnit("20", 18)
+		fromAccount   *res.AccountRes
+		toAccount     = t.testNet.Accounts[0]
+		sendAmount, _ = ethutil.ParseUnit("20", 18)
 	)
 	fromAccount, err := t.getKmsAccount()
 	t.NoError(err)

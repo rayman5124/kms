@@ -2,7 +2,7 @@ package ethutil
 
 import (
 	"bytes"
-	"log"
+	"fmt"
 	"math/big"
 	"regexp"
 	"strings"
@@ -16,11 +16,10 @@ func PadLeftTo32Bytes(buffer []byte) []byte {
 	return buffer
 }
 
-func ParseUnit(val string, decimal uint8) *big.Int {
+func ParseUnit(val string, decimal uint8) (*big.Int, error) {
 	trimed := regexp.MustCompile("[^0-9.-]+").ReplaceAllString(val, "")
 	if trimed == "" {
-		log.Println("not numeric value")
-		return nil
+		return nil, fmt.Errorf("not numeric value")
 	}
 
 	pad := decimal
@@ -31,5 +30,5 @@ func ParseUnit(val string, decimal uint8) *big.Int {
 
 	parsed := new(big.Int)
 	parsed.SetString(padded, 10)
-	return parsed
+	return parsed, nil
 }
