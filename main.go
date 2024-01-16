@@ -5,6 +5,7 @@ import (
 	"kms/wallet/app/api/model/dto"
 	"kms/wallet/app/server"
 	"kms/wallet/common/config"
+	"kms/wallet/common/logger"
 	"log"
 	"os"
 
@@ -25,6 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	logger.Init(*curEnv)
 	config.Init(wd + "/env/.env." + *curEnv)
 	dto.Init()
 

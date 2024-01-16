@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"kms/wallet/app/api/model/dto"
-	"kms/wallet/common/errwrap"
+	"kms/wallet/common/errs"
 	"kms/wallet/common/utils/ethutil"
 	"math/big"
 
@@ -66,17 +66,17 @@ func NewTxnSrv(chainID *big.Int, kmsSrv *KmsSrv) *TxnSrv {
 }
 
 // 서명되지 않은 트렌젝션을 받아서, 서명한뒤 리턴
-func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, *errwrap.ErrWrap) {
+func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, error) {
 	// 퍼블릭 키에 대한 요청 먼저 고루틴으로
 	var (
 		pubKey  []byte
-		errChan = make(chan *errwrap.ErrWrap)
+		errChan = make(chan error)
 	)
 	go func() {
-		var errWrap *errwrap.ErrWrap
-		pubKey, errWrap = s.kmsSrv.GetPubkey(&dto.KeyIdReq{KeyID: txnDTO.KeyID})
-		if errWrap != nil {
-			errChan <- errWrap.ChangeCode(500).AddLayer("SignSerializedTxn", "KmsSrv")
+		var err error
+		pubKey, err = s.kmsSrv.GetPubkey(&dto.KeyIdReq{KeyID: txnDTO.KeyID})
+		if err != nil {
+			errChan <- err
 			return
 		}
 		errChan <- nil
@@ -84,7 +84,7 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, *errw
 
 	parsedTxn, err := s.parseTxn(txnDTO.SerializedTxn)
 	if err != nil {
-		return nil, errwrap.ClientErr(err)
+		return nil, errs.InvalidTxnErr(err)
 	}
 
 	signer := types.NewCancunSigner(s.chainID)
@@ -96,9 +96,9 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, *errw
 	// kms로부터 서명을 받아온다
 	var retry int
 	for {
-		R, S, errWrap := s.kmsSrv.Sign(txnDTO.KeyID, txnMsg)
-		if errWrap != nil {
-			return nil, errWrap.AddLayer("SignSerializedTxn", "KmsSrv")
+		R, S, err := s.kmsSrv.Sign(txnDTO.KeyID, txnMsg)
+		if err != nil {
+			return nil, err
 		}
 
 		// S값 가공
@@ -111,17 +111,18 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, *errw
 		}
 
 		// V 값을 유추해서 완전한 이더리움 서명을 만든다
-		if errWrap := <-errChan; errWrap != nil {
-			return nil, errWrap
+		if err := <-errChan; err != nil {
+			return nil, err
 		}
-		signature, errWrap := getFullSignature(txnMsg, R, S, pubKey)
-		if errWrap != nil {
-			return nil, errWrap.AddLayer("SignSerializedTxn", "TxnSrv")
+
+		signature, err := getFullSignature(txnMsg, R, S, pubKey)
+		if err != nil {
+			return nil, errs.InternalServerErr(err)
 		}
 
 		if signature == nil {
 			if retry >= 5 {
-				return nil, errwrap.ServerErr(fmt.Errorf("invalid signature more than 5 times")).AddLayer("SigneSerializedTxn")
+				return nil, errs.InternalServerErr(fmt.Errorf("invalid signature more than 5 times"))
 			}
 			retry++
 			continue
@@ -130,12 +131,12 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, *errw
 
 		signedTxn, err := parsedTxn.WithSignature(signer, signature)
 		if err != nil {
-			return nil, errwrap.ServerErr(err).AddLayer("SignSerializedTxn", "tyes.Transaction", "WithSignature")
+			return nil, errs.InternalServerErr(err)
 		}
 
 		byteSignedTxn, err := signedTxn.MarshalBinary()
 		if err != nil {
-			return nil, errwrap.ServerErr(err).AddLayer("SignSerializedTxn", "types.Transaction", "MarshalBinary")
+			return nil, errs.InternalServerErr(err)
 		}
 		return &dto.SingedTxnRes{SignedTxn: "0x" + common.Bytes2Hex(byteSignedTxn)}, nil
 	}
@@ -228,7 +229,7 @@ func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 }
 
 // r, s 값과 퍼블릭 키를 바탕으로 v 값을 추정해서 완전한 서명을 만든 후 리턴
-func getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []byte) ([]byte, *errwrap.ErrWrap) {
+func getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []byte) ([]byte, error) {
 	vCandidates := [][]byte{{0}, {1}}
 
 	sigWithRS := append(ethutil.PadLeftTo32Bytes(R), ethutil.PadLeftTo32Bytes(S)...)
@@ -236,7 +237,7 @@ func getFullSignature(msg []byte, R []byte, S []byte, rightPubKey []byte) ([]byt
 		fullSig := append(sigWithRS, v...)
 		recoverdPub, err := crypto.Ecrecover(msg, fullSig)
 		if err != nil {
-			return nil, errwrap.ServerErr(err).AddLayer("getFullSignature", "crypto", "Encrecover")
+			return nil, err
 		}
 
 		if bytes.Equal(recoverdPub, rightPubKey) {

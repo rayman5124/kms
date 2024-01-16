@@ -1,6 +1,10 @@
 package controller
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"fmt"
+
+	"github.com/gofiber/fiber/v2"
+)
 
 type appCtrl struct {
 }
@@ -29,5 +33,6 @@ func (c *appCtrl) HealthCheck(ctx *fiber.Ctx) error {
 // @success 200
 // @router /api/error [get]
 func (c *appCtrl) Error(ctx *fiber.Ctx) error {
-	return fiber.ErrInternalServerError
+	// return fiber.ErrInternalServerError
+	return fmt.Errorf("sdfdsf")
 }

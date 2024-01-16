@@ -4,20 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"math"
-	"os"
+	"kms/wallet/common/logger"
 	"strings"
 
-	"github.com/rs/zerolog"
 	"golang.org/x/exp/maps"
 )
 
 var (
-	// logFields = []string{"ip", "status", "path", "method", "reqHeaders", "queryParams", "body", "resBody", "time", "latency", "error"}
 	logFields = []string{"ip", "status", "path", "method", "queryParams", "body", "resBody", "time", "latency", "error"}
-	// zlogger   = zerolog.New(os.Stdout).With().Timestamp().Logger()
-	zlogger = zerolog.New(os.Stdout)
-	sep     = "\r\n"
+	sep       = "\r\n"
 )
 
 func formatter() string {
@@ -38,19 +33,11 @@ func (w *writer) Write(elements []byte) (int, error) {
 		elMap[k] = val
 	}
 
-	var logEvent *zerolog.Event
-	switch errLayer := math.Floor(elMap["status"].(float64)/100) * 100; errLayer {
-	case 500:
-		logEvent = zlogger.Error().Err(fmt.Errorf(elMap["error"].(string)))
-	default:
-		logEvent = zlogger.Info()
-	}
-	delete(elMap, "error")
-
+	logItem := logger.Info()
 	for _, k := range maps.Keys(elMap) {
-		logEvent.Interface(k, elMap[k])
+		logItem = logItem.D(k, elMap[k])
 	}
-	logEvent.Send()
+	logItem.W()
 
 	return len(elements), nil
 }

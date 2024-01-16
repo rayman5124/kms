@@ -3,7 +3,8 @@ package server
 import (
 	"errors"
 	"kms/wallet/app/api/model/dto"
-	"kms/wallet/common/errwrap"
+	"kms/wallet/common/errs"
+	"kms/wallet/common/logger"
 	"kms/wallet/common/utils/timeutil"
 
 	"github.com/gofiber/fiber/v2"
@@ -12,27 +13,33 @@ import (
 func ErrHandler(c *fiber.Ctx, err error) error {
 	var (
 		fiberErr  *fiber.Error
-		customErr *errwrap.ErrWrap
-		code      = 500
-		msg       = "Internal Server Error"
+		customErr *errs.CusErr
+		code      = errs.Errs["UnhandledServerErr"].Code
+		errType   = errs.Errs["UnhandledServerErr"].Type
+		msg       = ""
 	)
 
 	if errors.As(err, &customErr) {
 		code = customErr.Code
+		errType = customErr.Type
 		switch code / 100 {
 		case 4:
-			msg = customErr.Message
-		case 5:
-			// err = customErr.CombineLayer()
+			msg = customErr.Inner.Error()
+		case 5, 6:
+			logger.Error().E(customErr.Inner).D("trace", customErr.Trace).D("func", customErr.Func).W(customErr.Type)
 		}
 	} else if errors.As(err, &fiberErr) {
 		code = fiberErr.Code
-		switch code {
-		case fiber.StatusNotFound:
-			msg = fiber.ErrNotFound.Message
-		case fiber.StatusBadRequest:
-			msg = fiberErr.Message
+		switch {
+		case code == fiber.StatusNotFound:
+			errType = fiber.ErrNotFound.Message
+		case code == fiber.StatusBadRequest:
+			errType = fiberErr.Message
+		default:
+			logger.Error().E(err).W("unhandled fiber error")
 		}
+	} else {
+		logger.Error().E(err).W(errType)
 	}
 
 	return c.Status(code).JSON(&dto.ErrRes{
@@ -40,6 +47,6 @@ func ErrHandler(c *fiber.Ctx, err error) error {
 		Timestamp: timeutil.FormatNow(),
 		Method:    c.Method(),
 		Path:      c.Path(),
-		Message:   msg,
+		Message:   []string{errType, msg},
 	})
 }

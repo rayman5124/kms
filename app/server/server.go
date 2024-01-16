@@ -7,6 +7,7 @@ import (
 	ctrl "kms/wallet/app/api/controller"
 	srv "kms/wallet/app/api/service"
 	"kms/wallet/common/config"
+	"kms/wallet/common/logger"
 	"kms/wallet/common/utils/timeutil"
 	_ "kms/wallet/docs"
 	"math/big"
@@ -20,10 +21,9 @@ import (
 	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
-	"github.com/rs/zerolog"
 )
 
 type server struct {
@@ -56,7 +56,7 @@ func New() *server {
 				"reqBody":     string(c.Request().Body()),
 			}
 			// zlogger.Panic().Err(fmt.Errorf("%v", e)).Interface("data", data).Send()
-			zlogger.WithLevel(zerolog.PanicLevel).Err(fmt.Errorf("%v", e)).Interface("data", data).Send()
+			logger.Panic().E(fmt.Errorf("%v", e)).D("data", data).W()
 			// fmt.Printf("[Panic] \r\nip: %s \r\nstatus: %v \r\npath: %s \r\nmethod: %s \r\nreqHeader: %s \r\nqueryParams: %s \r\nreqBody: %s \r\nresBody: %s \r\ntime: %s \r\nerrLog: %s\r\n\r\n", c.IP(), c.Response().StatusCode(), c.Path(), c.Method(), strings.ReplaceAll(strings.ReplaceAll(string(c.Request().Header.RawHeaders()), "\r\n", "&"), ": ", "="), c.Request().URI().QueryString(), c.Request().Body(), c.Response().Body(), timeutil.FormatNow(), fmt.Sprintf("%v\n%s\n", e, debug.Stack()))
 
 		},
@@ -66,7 +66,7 @@ func New() *server {
 
 	// logger
 	if config.Env.Log {
-		app.Use(logger.New(logger.Config{ // Only all routes that are registered after this one will be logged
+		app.Use(fiberlogger.New(fiberlogger.Config{ // Only all routes that are registered after this one will be logged
 			Format:     formatter(),
 			TimeFormat: timeutil.DateFormat,
 			Output:     &writer{},

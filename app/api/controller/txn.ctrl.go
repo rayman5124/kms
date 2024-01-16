@@ -35,7 +35,7 @@ func (c *txnCtrl) SignSerializedTxn(ctx *fiber.Ctx) error {
 
 	signedTxnRes, err := c.txnSrv.SignSerializedTxn(txnReq)
 	if err != nil {
-		return err.CombineLayer()
+		return err
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(signedTxnRes)
