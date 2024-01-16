@@ -13,7 +13,7 @@ import (
 
 func main() {
 	var (
-		curEnv = flag.String("env", "dev", "environment")
+		curEnv = flag.String("env", "local", "environment")
 	)
 	flag.Parse()
 
@@ -25,9 +25,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := config.Init(wd + "/env/.env." + *curEnv); err != nil {
-		log.Fatal(err)
-	}
+	config.Init(wd + "/env/.env." + *curEnv)
 	dto.Init()
 
 	// if err := <-server.New.Run(":" + config.Env.PORT); err != nil {

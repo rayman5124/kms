@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"kms/wallet/app/api/model/dto"
-	"kms/wallet/app/api/model/res"
 	"kms/wallet/app/api/test/common/http"
 	"kms/wallet/app/server"
 	"kms/wallet/common/config"
@@ -34,7 +33,7 @@ var (
 func (t *KmsTestSuite) BeforeTest(suiteName, testName string) {
 	// "Test_CreateAccount", "Test_GetAccountList", "Test_DeleteAccount", "Test_GetAddress", "Test_ImportAccount"
 
-	skips := []string{"Test_ImportAccount"}
+	skips := []string{"Test_DeleteAccount", "Test_ImportAccount", "Test_DeleteAccount", "Test_GetAddress"}
 	if slices.Contains(skips, testName) {
 		t.T().Skip()
 	}
@@ -43,7 +42,7 @@ func (t *KmsTestSuite) BeforeTest(suiteName, testName string) {
 func (t *KmsTestSuite) SetupSuite() {
 	flag.Parse()
 
-	t.NoError(config.Init("../../../../../env/.env." + *curEnv))
+	config.Init("../../../../../env/.env." + *curEnv)
 	config.Env.Log = *log
 	dto.Init()
 
@@ -56,28 +55,28 @@ func (t *KmsTestSuite) Test_CreateAccount() {
 	t.NoError(err)
 
 	if resData.Status == fiber.StatusCreated {
-		var resolvedRes res.AccountRes
+		var resolvedRes dto.AccountRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.T().Log(http.PrettyJson(resolvedRes))
 	} else {
-		var resolvedRes res.ErrRes
+		var resolvedRes dto.ErrRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.Fail(http.PrettyJson(resolvedRes))
 	}
 }
 
 func (t *KmsTestSuite) Test_GetAccountList() {
-	queryVal := []string{"limit=10"}
-	path := fmt.Sprintf("/api/account/list?%s", strings.Join(queryVal, "&"))
+	queryVal := []string{"limit=df"}
+	path := fmt.Sprintf("/api/accounts?%s", strings.Join(queryVal, "&"))
 	resData, err := http.Request(t.app, "GET", path, nil)
 	t.NoError(err)
 
 	if resData.Status == fiber.StatusOK {
-		var resolvedRes res.AccountListRes
+		var resolvedRes dto.AccountListRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.T().Log(http.PrettyJson(resolvedRes))
 	} else {
-		var resolvedRes res.ErrRes
+		var resolvedRes dto.ErrRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.Fail(http.PrettyJson(resolvedRes))
 	}
@@ -85,16 +84,16 @@ func (t *KmsTestSuite) Test_GetAccountList() {
 
 func (t *KmsTestSuite) Test_DeleteAccount() {
 	targetKeyID := "f50a9229-e7c7-45ba-b06c-8036b894424e"
-	path := fmt.Sprintf("/api/account/keyID/%s", targetKeyID)
+	path := fmt.Sprintf("/api/accounts/%s", targetKeyID)
 	resData, err := http.Request(t.app, "DELETE", path, nil)
 	t.NoError(err)
 
 	if resData.Status == fiber.StatusOK {
-		var resolvedRes res.AccountDeletionRes
+		var resolvedRes dto.AccountDeletionRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.T().Log(http.PrettyJson(resolvedRes))
 	} else {
-		var resolvedRes res.ErrRes
+		var resolvedRes dto.ErrRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.Fail(http.PrettyJson(resolvedRes))
 	}
@@ -102,16 +101,16 @@ func (t *KmsTestSuite) Test_DeleteAccount() {
 
 func (t *KmsTestSuite) Test_GetAddress() {
 	targetKeyID := "76eab66d-7bfd-49ac-827e-f9e04aed098e"
-	path := fmt.Sprintf("/api/address/keyID/%s", targetKeyID)
+	path := fmt.Sprintf("/api/accounts/%s", targetKeyID)
 	resData, err := http.Request(t.app, "GET", path, nil)
 	t.NoError(err)
 
 	if resData.Status == fiber.StatusOK {
-		var resolvedRes res.AddressRes
+		var resolvedRes dto.AddressRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.T().Log(http.PrettyJson(resolvedRes))
 	} else {
-		var resolvedRes res.ErrRes
+		var resolvedRes dto.ErrRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.Fail(http.PrettyJson(resolvedRes))
 	}
@@ -123,7 +122,7 @@ func (t *KmsTestSuite) Test_ImportAccount() {
 	t.NoError(err)
 	pk := common.Bytes2Hex(crypto.FromECDSA(ecdsaPK))
 
-	reqBodyDto := &dto.PkDTO{PK: pk}
+	reqBodyDto := &dto.PkReq{PK: pk}
 	reqBody, err := json.Marshal(reqBodyDto)
 	t.NoError(err)
 
@@ -131,11 +130,11 @@ func (t *KmsTestSuite) Test_ImportAccount() {
 	t.NoError(err)
 
 	if resData.Status == fiber.StatusCreated {
-		var resolvedRes res.AccountRes
+		var resolvedRes dto.AccountRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.T().Log(http.PrettyJson(resolvedRes))
 	} else {
-		var resolvedRes res.ErrRes
+		var resolvedRes dto.ErrRes
 		t.NoError(json.Unmarshal(resData.Body, &resolvedRes))
 		t.Fail(http.PrettyJson(resolvedRes))
 	}

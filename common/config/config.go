@@ -19,13 +19,13 @@ type EnvStruct struct {
 
 var Env *EnvStruct
 
-func Init(envPath string) error {
+func Init(envPath string) {
 	if Env == nil {
 		Env = new(EnvStruct)
 	}
 
 	if err := godotenv.Load(envPath); err != nil {
-		return err
+		log.Fatal(err)
 	}
 	Env.ENV = getEnv("ENV", true)
 	Env.PORT = getEnv("PORT", true)
@@ -37,8 +37,6 @@ func Init(envPath string) error {
 
 	// envLog, _ := json.MarshalIndent(Env, "", "\t")
 	// fmt.Println(string(envLog))
-
-	return nil
 }
 
 func getEnv(key string, required bool) string {

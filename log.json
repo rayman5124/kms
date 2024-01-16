@@ -1,0 +1,18 @@
+{
+  "level": "info",
+  "ip": "127.0.0.1",
+  "status": 400,
+  "path": "/api/accounts/3cb561d0-7aaf-4b3b-85c8-29064e26f6ab",
+  "queryParams": "",
+  "time": "2024-01-15_16:45:06",
+  "latency": "14.068958ms",
+  "method": "GET",
+  "reqBody": "",
+  "resBody": {
+    "message": ["3cb561d0-7aaf-4b3b-85c8-29064e26f6ab is pending deletion."],
+    "method": "GET",
+    "path": "/api/accounts/3cb561d0-7aaf-4b3b-85c8-29064e26f6ab",
+    "status": 400,
+    "timestamp": "2024-01-15_16:45:07"
+  }
+}

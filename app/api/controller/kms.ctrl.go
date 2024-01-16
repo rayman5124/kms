@@ -18,46 +18,46 @@ func NewKmsCtrl(kmsSrv *srv.KmsSrv) *kmsCtrl {
 func (c *kmsCtrl) BootStrap(router fiber.Router) {
 	router.Post("/create/account", c.CreateAccount)
 	router.Post("/import/account", c.ImportAccount)
-	router.Get("/address/keyID/:keyID", c.GetAddress)
-	router.Get("/account/list", c.GetAccountList)
-	router.Delete("/account/keyID/:keyID", c.DeleteAccount)
+	router.Get("/accounts", c.GetAccountList)
+	router.Get("/accounts/:keyID", c.GetAccount)
+	router.Delete("/accounts/:keyID", c.DeleteAccount)
 }
 
 // @tags Kms
-// @summary Get address of target key id
+// @summary Get account of target key id
 // @produce json
-// @success 200 {object} res.AddressRes
-// @router  /api/address/keyID/{keyID} [get]
+// @success 200 {object} dto.AccountRes
+// @router  /api/accounts/{keyID} [get]
 // @param   keyID path string true "kms key-id"
-func (c *kmsCtrl) GetAddress(ctx *fiber.Ctx) error {
-	KeyIdDTO, errWrap := dto.ShouldBind[dto.KeyIdDTO](ctx.ParamsParser)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+func (c *kmsCtrl) GetAccount(ctx *fiber.Ctx) error {
+	keyIdReq, err := dto.ShouldBind[dto.KeyIdReq](ctx.ParamsParser)
+	if err != nil {
+		return err.CombineLayer()
 	}
 
-	addressRes, errWrap := c.kmsSrv.GetAddress(KeyIdDTO)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	accountRes, err := c.kmsSrv.GetAccount(keyIdReq)
+	if err != nil {
+		return err.CombineLayer()
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(addressRes)
+	return ctx.Status(fiber.StatusOK).JSON(accountRes)
 }
 
 // @tags Kms
 // @summary Get accounst list
 // @produce json
-// @success 200 {object} res.AccountListRes
-// @router  /api/account/list [get]
-// @param   keyID query dto.AccountListDTO false "account list dto"
+// @success 200 {object} dto.AccountListRes
+// @router  /api/accounts [get]
+// @param   keyID query dto.AccountListReq false "account list dto"
 func (c *kmsCtrl) GetAccountList(ctx *fiber.Ctx) error {
-	accountListDTO, errWrap := dto.ShouldBind[dto.AccountListDTO](ctx.QueryParser)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	accountListReq, err := dto.ShouldBind[dto.AccountListReq](ctx.QueryParser)
+	if err != nil {
+		return err
 	}
 
-	accountListRes, errWrap := c.kmsSrv.GetAccountList(accountListDTO)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	accountListRes, err := c.kmsSrv.GetAccountList(accountListReq)
+	if err != nil {
+		return err
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(accountListRes)
@@ -66,12 +66,12 @@ func (c *kmsCtrl) GetAccountList(ctx *fiber.Ctx) error {
 // @tags Kms
 // @summary Create new account
 // @produce json
-// @success 201 {object} res.AccountRes
+// @success 201 {object} dto.AccountRes
 // @router  /api/create/account [post]
 func (c *kmsCtrl) CreateAccount(ctx *fiber.Ctx) error {
-	accountRes, errWrap := c.kmsSrv.CreateAccount()
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	accountRes, err := c.kmsSrv.CreateAccount()
+	if err != nil {
+		return err
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(accountRes)
@@ -80,18 +80,18 @@ func (c *kmsCtrl) CreateAccount(ctx *fiber.Ctx) error {
 // @tags Kms
 // @summary Import account to kms
 // @produce json
-// @success 201 {object} res.AccountRes
+// @success 201 {object} dto.AccountRes
 // @router  /api/import/account [post]
-// @param   subject body dto.PkDTO true "subject"
+// @param   subject body dto.PkReq true "subject"
 func (c *kmsCtrl) ImportAccount(ctx *fiber.Ctx) error {
-	pkDTO, errWrap := dto.ShouldBind[dto.PkDTO](ctx.BodyParser)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	pkReq, err := dto.ShouldBind[dto.PkReq](ctx.BodyParser)
+	if err != nil {
+		return err
 	}
 
-	accountRes, errWrap := c.kmsSrv.ImportAccount(pkDTO)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	accountRes, err := c.kmsSrv.ImportAccount(pkReq)
+	if err != nil {
+		return err
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(accountRes)
@@ -100,18 +100,18 @@ func (c *kmsCtrl) ImportAccount(ctx *fiber.Ctx) error {
 // @tags Kms
 // @summary delete account of target key id
 // @produce json
-// @success 200 {object} res.AccountDeletionRes
-// @router  /api/account/keyID/{keyID} [delete]
+// @success 200 {object} dto.AccountDeletionRes
+// @router  /api/accounts/{keyID} [delete]
 // @param   keyID path string true "kms key-id"
 func (c *kmsCtrl) DeleteAccount(ctx *fiber.Ctx) error {
-	keyIdDTO, errWrap := dto.ShouldBind[dto.KeyIdDTO](ctx.ParamsParser)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	keyIdReq, err := dto.ShouldBind[dto.KeyIdReq](ctx.ParamsParser)
+	if err != nil {
+		return err
 	}
 
-	accountDeletionRes, errWrap := c.kmsSrv.DeleteAccount(keyIdDTO)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	accountDeletionRes, err := c.kmsSrv.DeleteAccount(keyIdReq)
+	if err != nil {
+		return err
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(accountDeletionRes)

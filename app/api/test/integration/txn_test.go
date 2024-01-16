@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"kms/wallet/app/api/model/dto"
-	"kms/wallet/app/api/model/res"
 	"kms/wallet/app/api/test/common/erc20"
 	"kms/wallet/app/api/test/common/http"
 	"kms/wallet/app/api/test/common/testnet"
@@ -55,7 +54,7 @@ func (t *TxnTestSuite) BeforeTest(suiteName, testName string) {
 func (t *TxnTestSuite) SetupSuite() {
 	flag.Parse()
 
-	t.NoError(config.Init("../../../../env/.env." + *curEnv))
+	config.Init("../../../../env/.env." + *curEnv)
 	config.Env.Log = *log
 	dto.Init()
 
@@ -78,7 +77,7 @@ func (t *TxnTestSuite) SetupTest() {
 
 func (t *TxnTestSuite) Test_LegacyTxn() {
 	var (
-		fromAccount   *res.AccountRes
+		fromAccount   *dto.AccountRes
 		toAccount     = t.testNet.Accounts[5]
 		sendAmount, _ = ethutil.ParseUnit("20", 18)
 	)
@@ -120,7 +119,7 @@ func (t *TxnTestSuite) Test_LegacyTxn() {
 
 func (t *TxnTestSuite) Test_EIP1559Txn() {
 	var (
-		fromAccount   *res.AccountRes
+		fromAccount   *dto.AccountRes
 		toAccount     = t.testNet.Accounts[0]
 		sendAmount, _ = ethutil.ParseUnit("20", 18)
 	)
@@ -169,7 +168,7 @@ func (t *TxnTestSuite) Test_EIP1559Txn() {
 
 func (t *TxnTestSuite) Test_AceesListTxn() {
 	var (
-		fromAccount   *res.AccountRes
+		fromAccount   *dto.AccountRes
 		toAccount     = t.testNet.Accounts[0]
 		sendAmount, _ = ethutil.ParseUnit("20", 18)
 	)
@@ -232,14 +231,14 @@ func (t *TxnTestSuite) Test_AceesListTxn() {
 }
 
 func (t *TxnTestSuite) signAndSendTxn(keyID string, serializedTxn []byte) (*types.Receipt, error) {
-	reqBodyDto := &dto.SerializedTxnDTO{KeyID: keyID, SerializedTxn: common.Bytes2Hex(serializedTxn)}
+	reqBodyDto := &dto.TxnReq{KeyID: keyID, SerializedTxn: common.Bytes2Hex(serializedTxn)}
 	reqBody, _ := json.Marshal(reqBodyDto)
 	resData, err := http.Request(t.app, "POST", "/api/sign/txn", reqBody)
 	if err != nil {
 		return nil, err
 	}
 
-	var signedTxnRes *res.SingedTxnRes
+	var signedTxnRes *dto.SingedTxnRes
 	if resData.Status == fiber.StatusCreated {
 		json.Unmarshal(resData.Body, &signedTxnRes)
 	} else {
@@ -260,14 +259,14 @@ func (t *TxnTestSuite) signAndSendTxn(keyID string, serializedTxn []byte) (*type
 }
 
 // getAccountList를 통해서 존재하는 계정을 찾은다음 없으면 새로 만들어서 리턴
-func (t *TxnTestSuite) getKmsAccount() (*res.AccountRes, error) {
-	resData, err := http.Request(t.app, "GET", "/api/account/list", nil)
+func (t *TxnTestSuite) getKmsAccount() (*dto.AccountRes, error) {
+	resData, err := http.Request(t.app, "GET", "/api/accounts", nil)
 	if err != nil {
 		return nil, err
 	}
 
 	if resData.Status == fiber.StatusOK {
-		var accountListRes res.AccountListRes
+		var accountListRes dto.AccountListRes
 		json.Unmarshal(resData.Body, &accountListRes)
 
 		for _, account := range accountListRes.Accounts {
@@ -285,7 +284,7 @@ func (t *TxnTestSuite) getKmsAccount() (*res.AccountRes, error) {
 	}
 
 	if resData.Status == fiber.StatusCreated {
-		var resolvedRes res.AccountRes
+		var resolvedRes dto.AccountRes
 		json.Unmarshal(resData.Body, &resolvedRes)
 
 		return &resolvedRes, nil

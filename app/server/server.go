@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	ctrl "kms/wallet/app/api/controller"
 	srv "kms/wallet/app/api/service"
 	"kms/wallet/common/config"
@@ -22,6 +24,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
+	"github.com/rs/zerolog"
 )
 
 type server struct {
@@ -37,28 +40,37 @@ func New() *server {
 		Expiration: 60 * time.Second,
 		Max:        1000,
 	}))
+	// handle panic
 	app.Use(recover.New(recover.Config{
 		EnableStackTrace: true,
+		StackTraceHandler: func(c *fiber.Ctx, e interface{}) {
+			parser := func(data []byte) (ret any) {
+				json.Unmarshal(data, &ret)
+				return
+			}
+			data := map[string]any{
+				"ip":          c.IP(),
+				"path":        c.Path(),
+				"method":      c.Method(),
+				"reqHeader":   c.GetReqHeaders(),
+				"queryParams": parser(c.Context().URI().QueryString()),
+				"reqBody":     string(c.Request().Body()),
+			}
+			// zlogger.Panic().Err(fmt.Errorf("%v", e)).Interface("data", data).Send()
+			zlogger.WithLevel(zerolog.PanicLevel).Err(fmt.Errorf("%v", e)).Interface("data", data).Send()
+			// fmt.Printf("[Panic] \r\nip: %s \r\nstatus: %v \r\npath: %s \r\nmethod: %s \r\nreqHeader: %s \r\nqueryParams: %s \r\nreqBody: %s \r\nresBody: %s \r\ntime: %s \r\nerrLog: %s\r\n\r\n", c.IP(), c.Response().StatusCode(), c.Path(), c.Method(), strings.ReplaceAll(strings.ReplaceAll(string(c.Request().Header.RawHeaders()), "\r\n", "&"), ": ", "="), c.Request().URI().QueryString(), c.Request().Body(), c.Response().Body(), timeutil.FormatNow(), fmt.Sprintf("%v\n%s\n", e, debug.Stack()))
+
+		},
 	}))
 	// swagger
 	app.Get("/swagger/*", swagger.HandlerDefault) // logger 세팅 전에 설정
+
 	// logger
 	if config.Env.Log {
 		app.Use(logger.New(logger.Config{ // Only all routes that are registered after this one will be logged
-			CustomTags: map[string]logger.LogFunc{
-				"level": func(output logger.Buffer, c *fiber.Ctx, data *logger.Data, extraParam string) (int, error) {
-					level := "[Info]"
-					if levelFromErrHandler := c.Locals("level"); levelFromErrHandler != nil {
-						level = levelFromErrHandler.(string)
-						if level == "[Info]" {
-							data.ChainErr = nil // Info레벨은 에러로그를 찍지 않기 위함
-						}
-					}
-					return output.WriteString(level)
-				},
-			},
-			Format:     "${level} \r\nip: ${ip} \r\nstatus: ${status} \r\npath: ${path} \r\nmethod: ${method} \r\nreqHeader: ${reqHeader} \r\nqueryParams: ${queryParams} \r\nreqBody: ${body} \r\nresBody: ${resBody} \r\ntime: ${time} \r\nlatency: ${latency} \r\nerrLog: ${error}\r\n\r\n",
+			Format:     formatter(),
 			TimeFormat: timeutil.DateFormat,
+			Output:     &writer{},
 		}))
 	}
 	// kms client

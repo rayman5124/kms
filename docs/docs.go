@@ -16,35 +16,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/account/keyID/{keyID}": {
-            "delete": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Kms"
-                ],
-                "summary": "delete account of target key id",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "kms key-id",
-                        "name": "keyID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/res.AccountDeletionRes"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/account/list": {
+        "/api/accounts": {
             "get": {
                 "produces": [
                     "application/json"
@@ -71,13 +43,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/res.AccountListRes"
+                            "$ref": "#/definitions/dto.AccountListRes"
                         }
                     }
                 }
             }
         },
-        "/api/address/keyID/{keyID}": {
+        "/api/accounts/{keyID}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -85,7 +57,7 @@ const docTemplate = `{
                 "tags": [
                     "Kms"
                 ],
-                "summary": "Get address of target key id",
+                "summary": "Get account of target key id",
                 "parameters": [
                     {
                         "type": "string",
@@ -99,7 +71,33 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/res.AddressRes"
+                            "$ref": "#/definitions/dto.AccountRes"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Kms"
+                ],
+                "summary": "delete account of target key id",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "kms key-id",
+                        "name": "keyID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AccountDeletionRes"
                         }
                     }
                 }
@@ -118,7 +116,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/res.AccountRes"
+                            "$ref": "#/definitions/dto.AccountRes"
                         }
                     }
                 }
@@ -164,7 +162,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.PkDTO"
+                            "$ref": "#/definitions/dto.PkReq"
                         }
                     }
                 ],
@@ -172,7 +170,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/res.AccountRes"
+                            "$ref": "#/definitions/dto.AccountRes"
                         }
                     }
                 }
@@ -194,7 +192,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/dto.SerializedTxnDTO"
+                            "$ref": "#/definitions/dto.TxnReq"
                         }
                     }
                 ],
@@ -202,7 +200,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/res.SingedTxnRes"
+                            "$ref": "#/definitions/dto.SingedTxnRes"
                         }
                     }
                 }
@@ -210,7 +208,48 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.PkDTO": {
+        "dto.AccountDeletionRes": {
+            "type": "object",
+            "properties": {
+                "deleteionDate": {
+                    "type": "string",
+                    "example": "2023-12-11 03:21:18 +0000 UTC"
+                },
+                "keyID": {
+                    "type": "string",
+                    "example": "f50a9229-e7c7-45ba-b06c-8036b894424e"
+                }
+            }
+        },
+        "dto.AccountListRes": {
+            "type": "object",
+            "properties": {
+                "accounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.AccountRes"
+                    }
+                },
+                "marker": {
+                    "type": "string",
+                    "example": "AE0AAAACAHMAAAAJYWNjb3VudElkAHMAAAAMOTg1MDk2Mzk3ODIxAHMAAAAEdGtJZABzAAAAJDQ0YTAzNWU2LTY1OTEtNDgwMC04YjcwLWM3MzNiNTI2MzljMw"
+                }
+            }
+        },
+        "dto.AccountRes": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": "0x216690cD286d8a9c8D39d9714263bB6AB97046F3"
+                },
+                "keyID": {
+                    "type": "string",
+                    "example": "f50a9229-e7c7-45ba-b06c-8036b894424e"
+                }
+            }
+        },
+        "dto.PkReq": {
             "type": "object",
             "required": [
                 "pk"
@@ -222,7 +261,16 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.SerializedTxnDTO": {
+        "dto.SingedTxnRes": {
+            "type": "object",
+            "properties": {
+                "signedTxn": {
+                    "type": "string",
+                    "example": "0xf86a5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d0180860b280f5b1d3aa00d2ea43cfd9b91151348d037a5a80293f543e1700a7019853f28063f6442c826a052a29797169740b1bc48962e197299061c8aa3314951a9c71418d19036604645"
+                }
+            }
+        },
+        "dto.TxnReq": {
             "type": "object",
             "required": [
                 "keyID",
@@ -236,65 +284,6 @@ const docTemplate = `{
                 "serializedTxn": {
                     "type": "string",
                     "example": "0xea5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d018086059407ad8e8b8080"
-                }
-            }
-        },
-        "res.AccountDeletionRes": {
-            "type": "object",
-            "properties": {
-                "deleteionDate": {
-                    "type": "string",
-                    "example": "2023-12-11 03:21:18 +0000 UTC"
-                },
-                "keyID": {
-                    "type": "string",
-                    "example": "f50a9229-e7c7-45ba-b06c-8036b894424e"
-                }
-            }
-        },
-        "res.AccountListRes": {
-            "type": "object",
-            "properties": {
-                "accounts": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/res.AccountRes"
-                    }
-                },
-                "marker": {
-                    "type": "string",
-                    "example": "AE0AAAACAHMAAAAJYWNjb3VudElkAHMAAAAMOTg1MDk2Mzk3ODIxAHMAAAAEdGtJZABzAAAAJDQ0YTAzNWU2LTY1OTEtNDgwMC04YjcwLWM3MzNiNTI2MzljMw"
-                }
-            }
-        },
-        "res.AccountRes": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string",
-                    "example": "0x216690cD286d8a9c8D39d9714263bB6AB97046F3"
-                },
-                "keyID": {
-                    "type": "string",
-                    "example": "f50a9229-e7c7-45ba-b06c-8036b894424e"
-                }
-            }
-        },
-        "res.AddressRes": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string",
-                    "example": "0x216690cD286d8a9c8D39d9714263bB6AB97046F3"
-                }
-            }
-        },
-        "res.SingedTxnRes": {
-            "type": "object",
-            "properties": {
-                "signedTxn": {
-                    "type": "string",
-                    "example": "0xf86a5685ba43b740008252089439e243a7f209932df41e1fc0a1ada51b3a04b46d0180860b280f5b1d3aa00d2ea43cfd9b91151348d037a5a80293f543e1700a7019853f28063f6442c826a052a29797169740b1bc48962e197299061c8aa3314951a9c71418d19036604645"
                 }
             }
         }

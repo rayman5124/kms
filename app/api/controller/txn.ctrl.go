@@ -24,18 +24,18 @@ func (c *txnCtrl) BootStrap(router fiber.Router) {
 // @tags Transaction
 // @summary Sign serialized transaction.
 // @produce json
-// @success 201 {object} res.SingedTxnRes
+// @success 201 {object} dto.SingedTxnRes
 // @router  /api/sign/txn [post]
-// @param   subject body dto.SerializedTxnDTO true "subject"
+// @param   subject body dto.TxnReq true "subject"
 func (c *txnCtrl) SignSerializedTxn(ctx *fiber.Ctx) error {
-	txnDTO, errWrap := dto.ShouldBind[dto.SerializedTxnDTO](ctx.BodyParser)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	txnReq, err := dto.ShouldBind[dto.TxnReq](ctx.BodyParser)
+	if err != nil {
+		return err
 	}
 
-	signedTxnRes, errWrap := c.txnSrv.SignSerializedTxn(txnDTO)
-	if errWrap != nil {
-		return errWrap.CombineLayer()
+	signedTxnRes, err := c.txnSrv.SignSerializedTxn(txnReq)
+	if err != nil {
+		return err
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(signedTxnRes)
