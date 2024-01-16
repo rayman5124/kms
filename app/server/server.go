@@ -7,7 +7,6 @@ import (
 	ctrl "kms/wallet/app/api/controller"
 	srv "kms/wallet/app/api/service"
 	"kms/wallet/common/config"
-	"kms/wallet/common/utils/errutil"
 	"kms/wallet/common/utils/timeutil"
 	_ "kms/wallet/docs"
 	"math/big"
@@ -76,12 +75,15 @@ func New() *server {
 	// kms client
 	var kmsClient *kms.Client
 	creds := credentials.NewStaticCredentialsProvider(config.Env.AWS_ACCESS_KEY, config.Env.AWS_SECRET_KEY, "")
-	awsCfg :=
-		errutil.HandleFatal(awscfg.LoadDefaultConfig(
-			context.Background(),
-			awscfg.WithCredentialsProvider(creds),
-			awscfg.WithRegion(config.Env.AWS_REGION),
-		))
+	awsCfg, err := awscfg.LoadDefaultConfig(
+		context.Background(),
+		awscfg.WithCredentialsProvider(creds),
+		awscfg.WithRegion(config.Env.AWS_REGION),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if config.Env.ENV == "local" {
 		kmsClient = kms.NewFromConfig(awsCfg, func(o *kms.Options) {
 			o.BaseEndpoint = aws.String("http://localhost:8080")

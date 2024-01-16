@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
-	"kms/wallet/common/utils/errutil"
 	"kms/wallet/common/utils/ethutil"
 	"math/big"
 
@@ -43,8 +42,7 @@ func NewTestNet() *TestNet {
 
 	accounts := []Account{}
 	for i := 0; i < genesis_accounts+1; i++ {
-		ecdsPK := errutil.HandleFatal(crypto.GenerateKey())
-		// pk := common.Bytes2Hex(crypto.FromECDSA(ecdsPK))
+		ecdsPK, _ := crypto.GenerateKey()
 		address := crypto.PubkeyToAddress(ecdsPK.PublicKey)
 
 		if i < genesis_accounts {
@@ -59,7 +57,7 @@ func NewTestNet() *TestNet {
 	}
 
 	client := backends.NewSimulatedBackend(genesisAllocInfo, 10000000)
-	gasPrice := errutil.HandleFatal(client.SuggestGasPrice(context.Background()))
+	gasPrice, _ := client.SuggestGasPrice(context.Background())
 	return &TestNet{
 		Accounts:      accounts,
 		Client:        client,
