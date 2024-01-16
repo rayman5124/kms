@@ -1,19 +1,49 @@
-{
-  "level": "error",
-  "error": "operation error KMS: CreateKey, https response error StatusCode: 400, RequestID: , api error ValidationException: KeySpec ECC_SECG_P256K1 is not supported for Origin EXTERNAL [/Users/rayman/go/src/kms/tutorial-v3/app/api/service/kms.srv.go:149\nfunc1]",
-  "queryParams": "",
-  "reqBody": { "pk": "637081577126ff5c2d327f992bd66548e00262578fd558d7fe272ef21b8bf825" },
-  "resBody": {
-    "message": "Internal Server Error",
-    "method": "POST",
-    "path": "/api/import/account",
-    "status": 500,
-    "timestamp": "2024-01-16_10:51:02"
+[
+  {
+    "level": "error",
+    "error": "operation error KMS: CreateKey, https response error StatusCode: 400, RequestID: , api error ValidationException: KeySpec ECC_SECG_P256K1 is not supported for Origin EXTERNAL",
+    "trace": "/Users/rayman/go/src/kms/tutorial-v3/app/api/service/kms.srv.go:149",
+    "func": "kms/wallet/app/api/service.(*KmsSrv).ImportAccount.func1",
+    "time": "2024-01-16T14:54:21+09:00",
+    "message": "unhandled aws_kms error"
   },
-  "time": "2024-01-16_10:51:02",
-  "ip": "127.0.0.1",
-  "status": 500,
-  "path": "/api/import/account",
-  "method": "POST",
-  "latency": "15.270458ms"
-}
+  {
+    "level": "info",
+    "latency": "1.698542ms",
+    "ip": "127.0.0.1",
+    "status": 600,
+    "path": "/api/import/account",
+    "method": "POST",
+    "queryParams": "",
+    "reqBody": { "pk": "637081577126ff5c2d327f992bd66548e00262578fd558d7fe272ef21b8bf825" },
+    "resBody": {
+      "message": ["unhandled aws_kms error"],
+      "method": "POST",
+      "path": "/api/import/account",
+      "status": 600,
+      "timestamp": "2024-01-16_14:54:21"
+    },
+    "time": "2024-01-16T14:54:21+09:00"
+  },
+  {
+    "level": "info",
+    "ip": "127.0.0.1",
+    "status": 402,
+    "path": "/api/accounts/asdgf123pp%5D%5B%5D%5B%5D%5B%5D%5B%5D%5B%5D%5B%5D123%E3%85%81%E3%84%B4%E3%85%87%E3%84%B9%E3%85%81%E3%84%B4%E3%85%87%E3%84%B9123***%26%26%26",
+    "method": "GET",
+    "queryParams": "",
+    "reqBody": "",
+    "resBody": {
+      "message": [
+        "keyID not found",
+        "keyId 'asdgf123pp%5D%5B%5D%5B%5D%5B%5D%5B%5D%5B%5D%5B%5D123%E3%85%81%E3%84%B4%E3%85%87%E3%84%B9%E3%85%81%E3%84%B4%E3%85%87%E3%84%B9123***%26%26%26' does not exist not found"
+      ],
+      "method": "GET",
+      "path": "/api/accounts/asdgf123pp%5D%5B%5D%5B%5D%5B%5D%5B%5D%5B%5D%5B%5D123%E3%85%81%E3%84%B4%E3%85%87%E3%84%B9%E3%85%81%E3%84%B4%E3%85%87%E3%84%B9123***%26%26%26",
+      "status": 402,
+      "timestamp": "2024-01-16_14:53:59"
+    },
+    "latency": "13.225ms",
+    "time": "2024-01-16T14:53:59+09:00"
+  }
+]

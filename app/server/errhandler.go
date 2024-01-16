@@ -15,16 +15,15 @@ func ErrHandler(c *fiber.Ctx, err error) error {
 		fiberErr  *fiber.Error
 		customErr *errs.CusErr
 		code      = errs.Errs["UnhandledServerErr"].Code
-		errType   = errs.Errs["UnhandledServerErr"].Type
-		msg       = ""
+		msg       = []string{errs.Errs["UnhandledServerErr"].Type}
 	)
 
 	if errors.As(err, &customErr) {
 		code = customErr.Code
-		errType = customErr.Type
+		msg[0] = customErr.Type
 		switch code / 100 {
 		case 4:
-			msg = customErr.Inner.Error()
+			msg = append(msg, customErr.Inner.Error())
 		case 5, 6:
 			logger.Error().E(customErr.Inner).D("trace", customErr.Trace).D("func", customErr.Func).W(customErr.Type)
 		}
@@ -32,14 +31,14 @@ func ErrHandler(c *fiber.Ctx, err error) error {
 		code = fiberErr.Code
 		switch {
 		case code == fiber.StatusNotFound:
-			errType = fiber.ErrNotFound.Message
+			msg[0] = fiber.ErrNotFound.Message
 		case code == fiber.StatusBadRequest:
-			errType = fiberErr.Message
+			msg[0] = fiberErr.Message
 		default:
 			logger.Error().E(err).W("unhandled fiber error")
 		}
 	} else {
-		logger.Error().E(err).W(errType)
+		logger.Error().E(err).W(msg[0])
 	}
 
 	return c.Status(code).JSON(&dto.ErrRes{
@@ -47,6 +46,6 @@ func ErrHandler(c *fiber.Ctx, err error) error {
 		Timestamp: timeutil.FormatNow(),
 		Method:    c.Method(),
 		Path:      c.Path(),
-		Message:   []string{errType, msg},
+		Message:   msg,
 	})
 }

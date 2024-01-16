@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	logFields = []string{"ip", "status", "path", "method", "queryParams", "body", "resBody", "time", "latency", "error"}
+	logFields = []string{"ip", "status", "path", "method", "queryParams", "body", "resBody", "latency"}
 	sep       = "\r\n"
 )
 
