@@ -32,7 +32,7 @@ func (c *kmsCtrl) BootStrap(router fiber.Router) {
 func (c *kmsCtrl) GetAccount(ctx *fiber.Ctx) error {
 	keyIdReq, err := dto.ShouldBind[dto.KeyIdReq](ctx.ParamsParser)
 	if err != nil {
-		return err.CombineLayer()
+		return err
 	}
 
 	accountRes, err := c.kmsSrv.GetAccount(keyIdReq)
@@ -57,7 +57,7 @@ func (c *kmsCtrl) GetAccountList(ctx *fiber.Ctx) error {
 
 	accountListRes, err := c.kmsSrv.GetAccountList(accountListReq)
 	if err != nil {
-		return err
+		return err.CombineLayer()
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(accountListRes)
@@ -71,7 +71,7 @@ func (c *kmsCtrl) GetAccountList(ctx *fiber.Ctx) error {
 func (c *kmsCtrl) CreateAccount(ctx *fiber.Ctx) error {
 	accountRes, err := c.kmsSrv.CreateAccount()
 	if err != nil {
-		return err
+		return err.CombineLayer()
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(accountRes)
@@ -91,7 +91,7 @@ func (c *kmsCtrl) ImportAccount(ctx *fiber.Ctx) error {
 
 	accountRes, err := c.kmsSrv.ImportAccount(pkReq)
 	if err != nil {
-		return err
+		return err.CombineLayer()
 	}
 
 	return ctx.Status(fiber.StatusCreated).JSON(accountRes)
@@ -111,7 +111,7 @@ func (c *kmsCtrl) DeleteAccount(ctx *fiber.Ctx) error {
 
 	accountDeletionRes, err := c.kmsSrv.DeleteAccount(keyIdReq)
 	if err != nil {
-		return err
+		return err.CombineLayer()
 	}
 
 	return ctx.Status(fiber.StatusOK).JSON(accountDeletionRes)

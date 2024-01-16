@@ -90,6 +90,15 @@ func (e *ErrWrap) AddLayer(layers ...string) *ErrWrap {
 	}
 	e.Layer = strings.Join(layers, " -> ")
 	return e
+
+	// pc, file, line, _ := runtime.Caller(1)
+	// stack := fmt.Sprintf("%s:%v", file, line)
+	// fullName := strings.SplitAfter(runtime.FuncForPC(pc).Name(), ".")
+	// fun := fullName[len(fullName)-1]
+
+	// fmt.Println("@@@: ", runtime.FuncForPC(pc).Name())
+	// e.Layer = fmt.Sprintf("%s\n%s", stack, fun)
+	// return e
 }
 
 func (e *ErrWrap) ChangeCode(code int) *ErrWrap {

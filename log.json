@@ -1,18 +1,19 @@
 {
-  "level": "info",
-  "ip": "127.0.0.1",
-  "status": 400,
-  "path": "/api/accounts/3cb561d0-7aaf-4b3b-85c8-29064e26f6ab",
+  "level": "error",
+  "error": "operation error KMS: CreateKey, https response error StatusCode: 400, RequestID: , api error ValidationException: KeySpec ECC_SECG_P256K1 is not supported for Origin EXTERNAL [/Users/rayman/go/src/kms/tutorial-v3/app/api/service/kms.srv.go:149\nfunc1]",
   "queryParams": "",
-  "time": "2024-01-15_16:45:06",
-  "latency": "14.068958ms",
-  "method": "GET",
-  "reqBody": "",
+  "reqBody": { "pk": "637081577126ff5c2d327f992bd66548e00262578fd558d7fe272ef21b8bf825" },
   "resBody": {
-    "message": ["3cb561d0-7aaf-4b3b-85c8-29064e26f6ab is pending deletion."],
-    "method": "GET",
-    "path": "/api/accounts/3cb561d0-7aaf-4b3b-85c8-29064e26f6ab",
-    "status": 400,
-    "timestamp": "2024-01-15_16:45:07"
-  }
+    "message": "Internal Server Error",
+    "method": "POST",
+    "path": "/api/import/account",
+    "status": 500,
+    "timestamp": "2024-01-16_10:51:02"
+  },
+  "time": "2024-01-16_10:51:02",
+  "ip": "127.0.0.1",
+  "status": 500,
+  "path": "/api/import/account",
+  "method": "POST",
+  "latency": "15.270458ms"
 }

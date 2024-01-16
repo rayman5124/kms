@@ -5,7 +5,6 @@ import (
 	"kms/wallet/app/api/model/dto"
 	"kms/wallet/common/errwrap"
 	"kms/wallet/common/utils/timeutil"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -15,14 +14,14 @@ func ErrHandler(c *fiber.Ctx, err error) error {
 		fiberErr  *fiber.Error
 		customErr *errwrap.ErrWrap
 		code      = 500
-		msg       = []string{"Internal Server Error"}
+		msg       = "Internal Server Error"
 	)
 
 	if errors.As(err, &customErr) {
 		code = customErr.Code
 		switch code / 100 {
 		case 4:
-			msg = strings.Split(customErr.Message, "\r\n")
+			msg = customErr.Message
 		case 5:
 			// err = customErr.CombineLayer()
 		}
@@ -30,9 +29,9 @@ func ErrHandler(c *fiber.Ctx, err error) error {
 		code = fiberErr.Code
 		switch code {
 		case fiber.StatusNotFound:
-			msg = []string{fiber.ErrNotFound.Message}
+			msg = fiber.ErrNotFound.Message
 		case fiber.StatusBadRequest:
-			msg = []string{fiberErr.Message}
+			msg = fiberErr.Message
 		}
 	}
 
