@@ -19,6 +19,15 @@ type TxnSrv struct {
 	chainID *big.Int
 	kmsSrv  *KmsSrv
 }
+type LegacyTxnOptionalSig struct {
+	Nonce    uint64
+	GasPrice *big.Int
+	Gas      uint64
+	To       *common.Address `rlp:"nil"`
+	Value    *big.Int
+	Data     []byte
+	V, R, S  *big.Int `rlp:"optional"`
+}
 
 type AccessListTxnOptionalSig struct {
 	ChainID    *big.Int
@@ -146,19 +155,25 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, error
 func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 	txBytes := common.FromHex(serializedTxn)
 
-	// legacy 를 제외한 typed Transaction은 서명값(r, s, v)이 필수이기 때문에 서명이 없는 serialized txn을 파싱할때 에러가 발생한다.
+	// rlp decode 할때 서명값(r, s, v)이 필수이기 때문에 서명이 없는 serialized txn은 에러가 발생한다.
 	// go-ethereum 의 types 패키지를 활용하여 typed Transaction을 생성하면 자동으로 default 서명이 들어가지만 (r:0, s:0, v:0)
-	// Type-script의 ethers를 통해 typed Transaction을 생성하면 사인전에 서명값이 아예 존재하지 않아서 바로 파싱해버리면 에러가 발생한다.
-	// 따라서 트렌젝션 타입별로 따로 처리를 해준다
+	// 일반적으로 서명값에 디폴드값도 없는 트렌젝션을 받는 경우가 많을 것이기 때문에 한단계 더 거쳐서 rlp decode 해준다.
 
 	// legacy Txn
 	if len(txBytes) > 0 && txBytes[0] > 0x7f {
-		var parsedTxn types.Transaction
-		err := parsedTxn.UnmarshalBinary(txBytes)
+		var inner LegacyTxnOptionalSig
+		err := rlp.DecodeBytes(txBytes, &inner)
 		if err != nil {
 			return nil, err
 		}
-		return &parsedTxn, nil
+		return types.NewTx(&types.LegacyTx{
+			Nonce:    inner.Nonce,
+			GasPrice: inner.GasPrice,
+			Gas:      inner.Gas,
+			To:       inner.To,
+			Value:    inner.V,
+			Data:     inner.Data,
+		}), nil
 	}
 
 	// typed Txn

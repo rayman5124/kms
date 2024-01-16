@@ -66,7 +66,7 @@ func (t *KmsTestSuite) Test_CreateAccount() {
 }
 
 func (t *KmsTestSuite) Test_GetAccountList() {
-	queryVal := []string{"limit=df"}
+	queryVal := []string{"limit=12"}
 	path := fmt.Sprintf("/api/accounts?%s", strings.Join(queryVal, "&"))
 	resData, err := http.Request(t.app, "GET", path, nil)
 	t.NoError(err)

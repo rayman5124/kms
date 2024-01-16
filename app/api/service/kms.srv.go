@@ -290,6 +290,7 @@ func (s *KmsSrv) getPubKey(keyID string) (*ecdsa.PublicKey, error) {
 		return nil, errs.InternalServerErr(err)
 	}
 	s.pubKeyCache.Add(keyID, pubKey)
+
 	return pubKey, nil
 
 }
