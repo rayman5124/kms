@@ -1,24 +1,15 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	ctrl "kms/wallet/app/api/controller"
-	srv "kms/wallet/app/api/service"
 	"kms/wallet/common/config"
 	"kms/wallet/common/logger"
 	"kms/wallet/common/utils/timeutil"
 	_ "kms/wallet/docs"
-	"math/big"
 	"time"
 
-	awscfg "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
@@ -26,11 +17,11 @@ import (
 	"github.com/gofiber/swagger"
 )
 
-type server struct {
+type Server struct {
 	App *fiber.App
 }
 
-func New() *server {
+func New() *Server {
 	app := fiber.New(fiber.Config{
 		ErrorHandler: ErrHandler,
 	})
@@ -72,42 +63,8 @@ func New() *server {
 			Output:     &writer{},
 		}))
 	}
-	// kms client
-	var kmsClient *kms.Client
-	creds := credentials.NewStaticCredentialsProvider(config.Env.AWS_ACCESS_KEY, config.Env.AWS_SECRET_KEY, "")
-	awsCfg, err := awscfg.LoadDefaultConfig(
-		context.Background(),
-		awscfg.WithCredentialsProvider(creds),
-		awscfg.WithRegion(config.Env.AWS_REGION),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
 
-	if config.Env.ENV == "local" {
-		kmsClient = kms.NewFromConfig(awsCfg, func(o *kms.Options) {
-			o.BaseEndpoint = aws.String("http://localhost:8080")
-		})
-	} else {
-		kmsClient = kms.NewFromConfig(awsCfg)
-	}
-
-	chainID, ok := new(big.Int).SetString(config.Env.CHAIN_ID, 10)
-	if !ok {
-		log.Fatal("Invalid CHAIN_ID")
-	}
-
-	// service
-	kmsSrv := srv.NewKmsSrv(kmsClient)
-	txnSrv := srv.NewTxnSrv(chainID, kmsSrv)
-
-	// controller
-	apiRouter := app.Group("/api")
-	ctrl.NewAppCtrl().BootStrap(apiRouter)
-	ctrl.NewKmsCtrl(kmsSrv).BootStrap(apiRouter)
-	ctrl.NewTxnCtrl(txnSrv).BootStrap(apiRouter)
-
-	return &server{app}
+	return &Server{app}
 }
 
 // func (s *server) Run(port string) <-chan error {
@@ -117,6 +74,6 @@ func New() *server {
 // 	return ch
 // }
 
-func (s *server) Run(port string) error {
+func (s *Server) Run(port string) error {
 	return s.App.Listen(port)
 }

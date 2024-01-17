@@ -12,9 +12,7 @@ type txnCtrl struct {
 }
 
 func NewTxnCtrl(txnSrv *srv.TxnSrv) *txnCtrl {
-	c := &txnCtrl{txnSrv}
-
-	return c
+	return &txnCtrl{txnSrv}
 }
 
 func (c *txnCtrl) BootStrap(router fiber.Router) {

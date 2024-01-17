@@ -35,7 +35,7 @@ func ShouldBind[T any](parser func(any) error) (*T, error) {
 			case "lte":
 				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: got '%v' should be less than %s", err.Field(), err.Value(), err.Param()))
 			case "marker":
-				errMsgs = append(errMsgs, fmt.Sprintln("field [%s]: got '%v' invalid marker"))
+				errMsgs = append(errMsgs, fmt.Sprintln("marker is invalid"))
 			default:
 				errMsgs = append(errMsgs, fmt.Sprintf("field [%s]: got '%v' need correct %s", err.Field(), err.Value(), err.Tag()))
 			}

@@ -241,7 +241,7 @@ func (s *KmsSrv) Sign(keyID string, msg []byte) ([]byte, []byte, error) {
 	signRes, err := s.client.Sign(context.TODO(), &kms.SignInput{
 		KeyId:            aws.String(keyID),
 		SigningAlgorithm: types.SigningAlgorithmSpecEcdsaSha256,
-		MessageType:      types.MessageTypeDigest,
+		MessageType:      types.MessageTypeDigest, // 해당필드 빼먹으면 aws_kms 에서 msg를 또다시 해시하여 잘못된 서명값을 리턴한다
 		Message:          msg,
 	})
 	if err != nil {
