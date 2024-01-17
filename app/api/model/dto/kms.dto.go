@@ -2,7 +2,7 @@ package dto
 
 // req
 type KeyIdReq struct {
-	KeyID string `json:"keyID" validate:"required,ascii" example:"f50a9229-e7c7-45ba-b06c-8036b894424e"`
+	KeyID string `json:"keyID" validate:"required,ascii,min=1,max=2048" example:"f50a9229-e7c7-45ba-b06c-8036b894424e"`
 }
 
 type PkReq struct {
@@ -10,8 +10,8 @@ type PkReq struct {
 }
 
 type AccountListReq struct {
-	Limit  *int32  `json:"limit" validate:"omitempty,numeric,lte=1000" example:"100"`
-	Marker *string `json:"marker" validate:"omitempty,marker"`
+	Limit  *int32  `json:"limit" validate:"omitempty,numeric,gte=1,lte=1000" example:"100"`
+	Marker *string `json:"marker" validate:"omitempty,marker,max=1024,min=1"`
 }
 
 // res

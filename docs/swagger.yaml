@@ -1,7 +1,7 @@
 definitions:
   dto.AccountDeletionRes:
     properties:
-      deleteionDate:
+      deletionDate:
         example: 2023-12-11 03:21:18 +0000 UTC
         type: string
       keyID:
@@ -65,6 +65,8 @@ paths:
         name: limit
         type: integer
       - in: query
+        maxLength: 1024
+        minLength: 1
         name: marker
         type: string
       produces:

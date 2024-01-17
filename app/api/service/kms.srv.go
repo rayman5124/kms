@@ -120,7 +120,7 @@ func (s *KmsSrv) GetAccountList(accountListDTO *dto.AccountListReq) (*dto.Accoun
 		}
 	}
 
-	if keyList.NextMarker != nil {
+	if keyList.Truncated {
 		return &dto.AccountListRes{Accounts: accountsList, Marker: *keyList.NextMarker}, nil
 	}
 

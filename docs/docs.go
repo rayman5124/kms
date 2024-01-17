@@ -34,6 +34,8 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "maxLength": 1024,
+                        "minLength": 1,
                         "type": "string",
                         "name": "marker",
                         "in": "query"
@@ -211,7 +213,7 @@ const docTemplate = `{
         "dto.AccountDeletionRes": {
             "type": "object",
             "properties": {
-                "deleteionDate": {
+                "deletionDate": {
                     "type": "string",
                     "example": "2023-12-11 03:21:18 +0000 UTC"
                 },
