@@ -134,6 +134,7 @@ func (s *TxnSrv) SignSerializedTxn(txnDTO *dto.TxnReq) (*dto.SingedTxnRes, error
 				return nil, errs.InternalServerErr(fmt.Errorf("invalid signature more than 5 times"))
 			}
 			retry++
+			// v값이 0 혹은 1 에서 안나오면 3 혹은 4 인데 evm 에서는 해당 값이 나오는 서명값은 invalid 한 것으로 취급함으로 서명 r, s 값부터 다시 받아와야 한다.
 			continue
 		}
 		// 최종 V = {0,1} + CHAIN_ID * 2 + 35
