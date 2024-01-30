@@ -26,7 +26,7 @@ func formatter() string {
 type writer struct {
 }
 
-func (w *writer) Write(elements []byte) (int, error) {
+func (writer) Write(elements []byte) (int, error) {
 	elMap := make(map[string]interface{})
 	for _, each := range bytes.Split(elements, []byte(sep)) {
 		k, val := destructNprocess(each, []byte(":"))

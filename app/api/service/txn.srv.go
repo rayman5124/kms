@@ -172,7 +172,7 @@ func (s *TxnSrv) parseTxn(serializedTxn string) (*types.Transaction, error) {
 			GasPrice: inner.GasPrice,
 			Gas:      inner.Gas,
 			To:       inner.To,
-			Value:    inner.V,
+			Value:    inner.Value,
 			Data:     inner.Data,
 		}), nil
 	}
